@@ -142,6 +142,28 @@ button { font: inherit; color: inherit; }
 .trail { fill: none; stroke: var(--fg); stroke-opacity: .35; stroke-width: 2; stroke-dasharray: 2 5; stroke-linecap: round; }
 .trail.sel { stroke: var(--accent); stroke-opacity: .9; stroke-width: 3; stroke-dasharray: none; }
 .trail-pt { fill: var(--accent); }
+.route { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; opacity: .9; }
+.route.out { stroke: var(--crit); }
+.route-start { fill: var(--surface); stroke: var(--accent); stroke-width: 3; }
+.route-tick { fill: var(--accent); }
+.route-time { fill: var(--map-ink); font-family: var(--f-mono); font-weight: 500; paint-order: stroke; stroke: var(--ground); stroke-linejoin: round; }
+
+/* Simple view: route card for the tapped cow */
+.route-card {
+  position: absolute; left: 10px; bottom: 10px; right: 96px; max-width: 420px;
+  background: var(--surface); border: 2px solid var(--fg); border-radius: 14px; padding: 12px 14px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,.18);
+  left: calc(10px + env(safe-area-inset-left, 0px)); bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+}
+.route-card h2 { margin: 0; font-family: var(--f-display); font-size: 26px; line-height: 1.05; }
+.route-card p { margin: 0; font-size: 16px; }
+.route-card .big { font-size: 19px; font-weight: 600; }
+.route-card button {
+  grid-row: 1 / span 3; grid-column: 2; font-size: 17px; font-weight: 600; padding: 12px 14px; border-radius: 12px;
+  border: 2px solid var(--fg); background: var(--surface); cursor: pointer;
+}
+@media (max-width: 480px) { .route-card { right: 88px; padding: 10px 12px; grid-template-columns: minmax(0, 1fr); } .route-card h2 { font-size: 22px; } .route-card p { font-size: 15px; } .route-card .big { font-size: 17px; } .route-card button { grid-row: auto; grid-column: 1 / -1; padding: 9px; } }
 .cow { cursor: pointer; transition: transform .9s ease; }
 @media (prefers-reduced-motion: reduce) { .cow { transition: none; } .pulse { animation: none !important; } }
 .cow .body { fill: var(--tag); stroke: var(--tag-ink); stroke-width: 2.5; }
@@ -396,7 +418,7 @@ td.mono { font-family: var(--f-mono); }
             <text class="home-label simple-only" x="0" y="40" text-anchor="middle" font-size="16">Home</text>
           </g>
         </g>
-        <g id="trails" class="adv-only"></g>
+        <g id="trails"></g>
         <g id="handheld" class="adv-only"></g>
         <g id="cows"></g>
         <g id="handles"></g>
@@ -419,6 +441,7 @@ td.mono { font-family: var(--f-mono); }
         <button class="tool" id="tPause" aria-pressed="false" type="button">Pause</button>
         <button class="tool danger" id="tBreak" type="button">Simulate breakout</button>
       </div>
+      <div class="route-card simple-only" id="routeCard" hidden></div>
       <div class="zoom">
         <button class="zbtn" id="zIn" type="button" aria-label="Zoom in">+</button>
         <button class="zbtn" id="zOut" type="button" aria-label="Zoom out">−</button>
@@ -536,6 +559,10 @@ td.mono { font-family: var(--f-mono); }
   raise('warn', 'Bruno (#07) battery below 60 %, solar charging resumed', '07', START - 95, true);
   raise('warn', 'Lily (#08) has not reported for 30 min. Last fix near the trees, south-east of the trough.', '08', START - 4);
 
+  const routeMetres = c => c.trail.reduce((s, p, i) => i ? s + Math.hypot(p[0] - c.trail[i - 1][0], p[1] - c.trail[i - 1][1]) : 0, 0);
+  const fmtKm = m => m < 1000 ? Math.round(m / 10) * 10 + ' m' : (m / 1000).toFixed(1) + ' km';
+  let routeTag = null;   // simple view: whose full route is shown
+
   function herdCentre(except) {
     const g = herd.filter(c => c !== except && c.mode === 'graze' && !c.stale);
     return { x: g.reduce((s, c) => s + c.x, 0) / g.length, y: g.reduce((s, c) => s + c.y, 0) / g.length };
@@ -599,7 +626,7 @@ td.mono { font-family: var(--f-mono); }
 
   function report(c, quiet) {
     move(c);
-    c.trail.push([c.x, c.y]); if (c.trail.length > 30) c.trail.shift();
+    c.trail.push([c.x, c.y, now()]); if (c.trail.length > 720) c.trail.shift();   // a full day at 2-min reports
     if (quiet) return;
     c.last = now(); c.stale = false;
     const d = Math.max(30, dist(c, HOUSE));
@@ -615,8 +642,10 @@ td.mono { font-family: var(--f-mono); }
   }
 
   // warm-up history so trails are visible from the first frame
-  for (let k = 0; k < 8; k++) herd.forEach(c => { if (c !== lily) report(c, true); });
-  lily.trail = [[640,450],[648,462],[650,470]]; lily.x = 650; lily.y = 470;
+  const WARM = 40;   // reports since about 00:00
+  for (let k = 0; k < WARM; k++) herd.forEach(c => { if (c !== lily) report(c, true); });
+  herd.forEach(c => c.trail.forEach((p, i) => { p[2] = START - (c.trail.length - 1 - i) * NORMAL; }));
+  lily.trail = [[600,420,START-74],[612,436,START-64],[628,445,START-54],[640,450,START-44],[650,470,START-34]]; lily.x = 650; lily.y = 470;
   herd.forEach(c => { if (c !== lily) { const t = c.trail[c.trail.length - 1]; c.x = t[0]; c.y = t[1]; } });
 
   function loop() {
@@ -662,11 +691,25 @@ td.mono { font-family: var(--f-mono); }
       `<circle class="f-handle" data-i="${i}" cx="${p[0]}" cy="${p[1]}" r="11"><title>Drag to move this corner</title></circle>`).join('') : '';
 
     const sel = herd.find(c => c.tag === selected);
-    $('trails').innerHTML = herd.filter(c => allTrails || c === sel).map(c => {
-      const pts = c.trail.map(p => p.map(n => n.toFixed(1)).join(',')).join(' ');
-      const dots = c === sel ? c.trail.slice(0, -1).map(p => `<circle class="trail-pt" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.5"/>`).join('') : '';
-      return `<polyline class="trail ${c === sel ? 'sel' : ''}" points="${pts}"/>${dots}`;
-    }).join('');
+    const ptsOf = list => list.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+    if (simple()) {   // only the tapped cow's full route, drawn bold with time marks every 2 h
+      const c = herd.find(x => x.tag === routeTag);
+      const u = 1 / pxPerUnit();
+      $('trails').innerHTML = !c ? '' :
+        `<polyline class="route ${status(c) === 'out' ? 'out' : ''}" points="${ptsOf(c.trail.concat([[c.x, c.y]]))}" style="stroke-width:${(5 * u).toFixed(2)}"/>` +
+        c.trail.filter((p, i) => i > 0 && Math.floor(p[2] / 120) !== Math.floor(c.trail[i - 1][2] / 120)).map(p =>
+          `<circle class="route-tick" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${(5 * u).toFixed(2)}"/>` +
+          `<text class="route-time" x="${(p[0] + 8 * u).toFixed(1)}" y="${(p[1] - 6 * u).toFixed(1)}" style="font-size:${(13 * u).toFixed(2)}px;stroke-width:${(3 * u).toFixed(2)}px">${fmt(p[2])}</text>`).join('') +
+        `<circle class="route-start" cx="${c.trail[0][0].toFixed(1)}" cy="${c.trail[0][1].toFixed(1)}" r="${(8 * u).toFixed(2)}" style="stroke-width:${(3 * u).toFixed(2)}"/>` +
+        `<text class="route-time" x="${(c.trail[0][0] + 12 * u).toFixed(1)}" y="${(c.trail[0][1] + 5 * u).toFixed(1)}" style="font-size:${(15 * u).toFixed(2)}px;stroke-width:${(3 * u).toFixed(2)}px;font-weight:700">Start ${fmt(c.trail[0][2])}</text>`;
+    } else {   // advanced: selected cow's full day; "All trails" adds everyone's last 2 h
+      $('trails').innerHTML = herd.filter(c => allTrails || c === sel).map(c => {
+        const list = c === sel ? c.trail : c.trail.slice(-12);
+        const dots = c === sel ? list.slice(0, -1).map(p => `<circle class="trail-pt" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.5"/>`).join('') : '';
+        return `<polyline class="trail ${c === sel ? 'sel' : ''}" points="${ptsOf(list)}"/>${dots}`;
+      }).join('');
+    }
+    renderRouteCard();
 
     $('handheld').innerHTML =
       (sel ? `<line class="link" x1="${HANDHELD.x}" y1="${HANDHELD.y}" x2="${sel.x.toFixed(1)}" y2="${sel.y.toFixed(1)}"/>` : '') +
@@ -705,6 +748,18 @@ td.mono { font-family: var(--f-mono); }
       }
       if (c.tag === selected && g.lastChild !== el) g.appendChild(el);
     });
+  }
+
+  function renderRouteCard() {
+    const card = $('routeCard'), c = simple() && herd.find(x => x.tag === routeTag);
+    card.hidden = !c;
+    if (!c) return;
+    const st = status(c);
+    const html = `<h2>${esc(c.name)}${st === 'out' ? ' · <span style="color:var(--crit)">outside</span>' : ''}</h2>` +
+      `<p class="big">Walked ${fmtKm(routeMetres(c))} since ${fmt(c.trail[0][2])}</p>` +
+      `<p>Last seen ${ago(c.last)}</p>` +
+      `<button type="button" id="routeClose">Show all cows</button>`;
+    if (card.dataset.html !== html) { card.dataset.html = html; card.innerHTML = html; }
   }
 
   // Simple view: one plain sentence about the whole herd. Tapping it zooms to whoever needs attention.
@@ -771,6 +826,7 @@ td.mono { font-family: var(--f-mono); }
         <div><dt>GPS</dt><dd>${c.stale ? 'no fix' : `${c.sats} sats · HDOP ${c.hdop}`}</dd></div>
         <div><dt>From house</dt><dd>${Math.round(dist(HOUSE, c))} m ${compass(HOUSE, c)}</dd></div>
         <div><dt>From handheld</dt><dd>${hd} m ${compass(HANDHELD, c)}</dd></div>
+        <div><dt>Walked today</dt><dd>${fmtKm(routeMetres(c))} since ${fmt(c.trail[0][2])}</dd></div>
       </dl>
       <div class="actions">
         <button class="btn primary" type="button" data-act="buzz" ${c.buzzQ ? 'disabled' : ''}>${c.buzzQ ? 'Buzz queued' : 'Find (buzz 30 s)'}</button>
@@ -895,11 +951,12 @@ td.mono { font-family: var(--f-mono); }
     svg.setAttribute('viewBox', `${(view.cx - view.w / 2).toFixed(1)} ${(view.cy - h / 2).toFixed(1)} ${view.w.toFixed(1)} ${h.toFixed(1)}`);
     renderMap();
   }
-  function fitBox(x0, y0, x1, y1, padPx) {   // padPx: screen margin so markers and labels are not cut off
+  function fitBox(x0, y0, x1, y1, padPx, bottomPx = 0) {   // padPx: margin so markers aren't cut off; bottomPx: room for a card
     const s = mapSize();
-    const fx = Math.max(0.3, 1 - 2 * padPx / s.w), fy = Math.max(0.3, 1 - 2 * padPx / s.h);
-    view.cx = (x0 + x1) / 2; view.cy = (y0 + y1) / 2;
+    const fx = Math.max(0.3, 1 - 2 * padPx / s.w), fy = Math.max(0.3, 1 - (2 * padPx + bottomPx) / s.h);
     view.w = Math.max(MIN_W, Math.min(MAX_W, Math.max((x1 - x0) / fx, (y1 - y0) / fy * s.w / s.h)));
+    view.cx = (x0 + x1) / 2;
+    view.cy = (y0 + y1) / 2 + bottomPx / 2 * view.w / s.w;
     applyView();
   }
   function showAll() {
@@ -948,7 +1005,21 @@ td.mono { font-family: var(--f-mono); }
       pinchDist = d; panMoved = true;
     }
   });
-  const dropPointer = e => { pointers.delete(e.pointerId); if (pointers.size < 2) pinchDist = 0; };
+  let lastTap = { t: 0, x: 0, y: 0 };
+  const dropPointer = e => {
+    const wasTap = pointers.has(e.pointerId) && pointers.size === 1 && !panMoved && e.type === 'pointerup';
+    pointers.delete(e.pointerId);
+    if (pointers.size < 2) pinchDist = 0;
+    if (!wasTap || e.target.closest && e.target.closest('.cow')) return;
+    const now = performance.now();
+    if (now - lastTap.t < 350 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 30) {   // double-tap: zoom in there
+      const p = toSvg(e.clientX, e.clientY);
+      zoomAt(2, p.x, p.y);
+      lastTap.t = 0;
+    } else {
+      lastTap = { t: now, x: e.clientX, y: e.clientY };
+    }
+  };
   window.addEventListener('pointerup', dropPointer);
   window.addEventListener('pointercancel', dropPointer);
   new ResizeObserver(() => applyView()).observe($('map').parentElement);
@@ -960,6 +1031,7 @@ td.mono { font-family: var(--f-mono); }
     $('modeBtn').textContent = mode === 'simple' ? 'Advanced ›' : '‹ Simple view';
     $('modeBtn').setAttribute('aria-label', mode === 'simple' ? 'Open advanced view with herd list, alerts and fences' : 'Back to simple map view');
     if (mode === 'simple') editMode = false;
+    routeTag = null;
     try { localStorage.setItem('ctv1-mode', mode); } catch (e) {}
     requestAnimationFrame(() => { showAll(); render(); });
   }
@@ -974,15 +1046,22 @@ td.mono { font-family: var(--f-mono); }
 
   // ---------- interactions ----------
   function select(tag) {
-    if (simple()) {   // simple view: tapping a cow just zooms to it
+    if (simple()) {   // simple view: tapping a cow shows its full route for today
       const c = herd.find(x => x.tag === tag);
-      view.cx = c.x; view.cy = c.y; view.w = Math.min(view.w, 320);
-      applyView();
+      routeTag = tag;
+      const xs = c.trail.map(p => p[0]).concat(c.x), ys = c.trail.map(p => p[1]).concat(c.y);
+      fitBox(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys), 60, mapSize().w < 500 ? 150 : 110);
       return;
     }
     selected = tag; tab = 'herd'; render();
   }
-  $('cows').addEventListener('click', e => { const g = e.target.closest('.cow'); if (g && !panMoved) select(g.dataset.tag); });
+  $('routeCard').addEventListener('click', e => { if (e.target.id === 'routeClose') { routeTag = null; showAll(); } });
+  $('cows').addEventListener('click', e => {
+    const g = e.target.closest('.cow');
+    if (!g || panMoved) return;
+    if (e.detail) g.blur();   // tapped or clicked, not keyboard: no focus box
+    select(g.dataset.tag);
+  });
   $('cows').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.cow')) { e.preventDefault(); select(e.target.closest('.cow').dataset.tag); } });
 
   document.querySelector('.tabs').addEventListener('click', e => { const t = e.target.closest('.tab'); if (t) { tab = t.dataset.tab; render(); } });

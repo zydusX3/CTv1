@@ -40,7 +40,7 @@ wants to glance at the herd. One button in the top corner switches to **Advanced
 | Shows | One status line in plain words, then the map with the animals, their names, and the house. Paddock fences stay visible as context. | Map plus herd list, alerts, fences, devices, trails, handheld |
 | Controls | Big **+**, **−** and **Show all** buttons (64 px), pinch and drag | Same zoom plus editing tools |
 | Text | Large names; problems written in words on the map ("Moti · outside", "Lily · no signal") and shown in red | Status pills, numbers, signal details |
-| Tap an animal | Zooms in on it | Opens its detail card |
+| Tap an animal | Shows its full route for today and how far it walked | Opens its detail card; its full route is drawn on the map |
 | When a critical alert fires | Map zooms out to show every animal, message shown in large text | Alert list + toast |
 | Hidden | Everything else: no menus, settings, numbers or editing | — |
 
@@ -54,6 +54,11 @@ Requirements:
   - amber "Lily has no signal", "last seen 1 h ago. The other 7 are safe."
   - green "All 8 cows are safe", "updated 07:20"
   Tapping it zooms to the animal(s) it names.
+- S6. Tapping an animal shows its **full route for today**: a bold line from where it was at midnight,
+  a time mark every 2 hours, a "Start" marker, and a card with "Walked 2.4 km since 00:10" and
+  "Last seen 4 min ago". **Show all cows** closes it.
+- S7. Touch: pinch to zoom, drag with one finger to pan, double-tap to zoom in. The **+ / − / Show all**
+  buttons do the same for people who find gestures hard.
 
 ### Map
 - F1. Live map of all animals with a marker per tag (tag number + name), updating within
