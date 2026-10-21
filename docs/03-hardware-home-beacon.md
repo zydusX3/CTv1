@@ -60,13 +60,23 @@ and an ESP32-S3 for WiFi, MQTT and a small setup web page.
   send ACK (+ any queued command for that tag) inside the tag's 1 s RX window, then pass
   `{raw packet, RSSI, SNR}` to the ESP32 over UART1 as one text line (`UP,-97,7,<hex>`).
   UART2 stays free for flashing, so the ESP32 never has to be unplugged to update the radio.
-- **ESP32-S3 firmware (Arduino or ESP-IDF):**
-  - WiFi manager (captive portal first time), stores MQTT server and keys.
-  - Publishes `ctv1/gw/<gw_id>/up` JSON for each packet, `ctv1/gw/<gw_id>/status` every 60 s.
-  - Subscribes `ctv1/gw/<gw_id>/down` for commands (buzz, interval) and queues them per tag.
-  - Buffers up to ~2000 packets in flash if WiFi or the server is down, then replays.
-  - Local fallback: if the server is unreachable, it can still check a cached fence and
-    sound the siren / LED on its own.
+- **ESP32-S3 firmware** (`firmware/beacon_esp32`, Arduino):
+  - First start: opens the hotspot `CTv1-Beacon-XXXX` (password `ctv1setup`). Join it and the
+    settings page opens by itself: pick the WiFi, enter the MQTT server, done. Hold **BOOT**
+    while powering up to get the hotspot again. It also reappears if WiFi is lost for over a minute.
+  - Publishes every report to `ctv1/gw/<name>/up` as decoded JSON, status every 60 s, and events
+    (fence, power cut, commands). Topics are in [06 · App requirements](06-app-requirements.md#mqtt-topics).
+  - Commands from `ctv1/gw/<name>/down` go to the radio, which sends them with the tag's next ACK.
+  - Keeps up to 2000 reports in RAM while WiFi or the server is down, then replays them in order with
+    their original time. The UPS keeps this through power cuts.
+  - Backup fence: the server publishes the paddock outline (retained) to `ctv1/gw/<name>/fence`. The
+    beacon then sounds the siren and lights the red LED on its own when a tag leaves, even with no internet.
+  - Web page at `http://ctv1-beacon.local`: every tag's last position (OpenStreetMap link),
+    battery and signal, plus a **Buzz** button. Settings can be password-protected.
+  - Resets the RAK3172 if it goes silent for 3 minutes. Reports mains power lost / restored.
+  - LEDs: green blinks per report; red is on for an alarm and blinks slowly when WiFi, the server or the radio is down.
+    A short press on **BOOT** silences the alarm.
+  - The OLED (GPIO 8/9) is not driven yet. The web page shows the same information.
 
 ## Bill of materials
 

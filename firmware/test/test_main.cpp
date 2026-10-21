@@ -243,10 +243,62 @@ static void test_gwlink() {
   CHECK(!ctv1_gw_parse_cmd("PING", c));
 }
 
+static void test_json() {
+  uint8_t key[16] = {0}, raw[20];
+  Ctv1Uplink up = {CTV1_UP_POSITION, 7, 201, 108512345, -762712345, 3910, CTV1_FLAG_FIX_OK | CTV1_FLAG_OUTSIDE, 9, 3, 42};
+  ctv1_encode_uplink(up, key, raw);
+  char js[400];
+  size_t n = ctv1_json_uplink(js, sizeof(js), "home", up, -97, -3, 1792600000LL, raw, 20);
+  CHECK(n > 0);
+  CHECK(strstr(js, "\"tag\":7,\"seq\":201,\"type\":\"position\"") != nullptr);
+  CHECK(strstr(js, "\"lat\":10.8512345,\"lon\":-76.2712345") != nullptr);
+  CHECK(strstr(js, "\"flags\":[\"fix\",\"outside\"]") != nullptr);
+  CHECK(strstr(js, "\"hdop\":1.5,") != nullptr);
+  CHECK(strstr(js, "\"rssi\":-97,\"snr\":-3,\"ts\":1792600000,") != nullptr);
+  CHECK(strstr(js, "\"batt_pct\":68") != nullptr);
+  CHECK(strstr(js, "\"raw\":\"010700c9") != nullptr);
+  CHECK_EQ(ctv1_json_uplink(js, 100, "home", up, -97, -3, 0, raw, 20), 0);  // too small
+  ctv1_json_uplink(js, sizeof(js), "home", up, -97, -3, 0, raw, 20);
+  CHECK(strstr(js, "\"ts\":null") != nullptr);
+
+  char e7[16];
+  ctv1_format_e7(e7, sizeof(e7), -5);
+  CHECK(strcmp(e7, "-0.0000005") == 0);
+
+  Ctv1GwCommand c;
+  CHECK(ctv1_json_parse_down("{\"tag\":7,\"cmd\":\"buzz\",\"arg\":20}", c));
+  CHECK_EQ(c.tag_id, 7);
+  CHECK_EQ(c.cmd, CTV1_CMD_BUZZ);
+  CHECK_EQ(c.arg, 20);
+  CHECK(ctv1_json_parse_down("{ \"cmd\" : \"buzz\" , \"tag\" : 12 }", c));  // default 30 s
+  CHECK_EQ(c.arg, 30);
+  CHECK(ctv1_json_parse_down("{\"tag\":3,\"cmd\":3,\"arg\":2}", c));
+  CHECK_EQ(c.cmd, CTV1_CMD_FAST);
+  CHECK(ctv1_json_parse_down("{\"tag\":3,\"cmd\":\"interval\",\"arg\":5}", c));
+  CHECK_EQ(c.cmd, CTV1_CMD_SET_INTERVAL);
+  CHECK(!ctv1_json_parse_down("{\"tag\":3,\"cmd\":\"explode\"}", c));
+  CHECK(!ctv1_json_parse_down("{\"cmd\":\"buzz\"}", c));
+  CHECK(!ctv1_json_parse_down("{\"tag\":3,\"cmd\":\"buzz\",\"arg\":999}", c));
+  CHECK(!ctv1_json_parse_down("{\"tag\":70000,\"cmd\":1}", c));
+
+  Ctv1Point pts[8];
+  CHECK_EQ(ctv1_json_parse_fence("{\"name\":\"Main\",\"points\":[[10.85162,76.26634], [10.8518,76.27082],[10.85018 , 76.271556],[-33.8688,-151.2093]]}", pts, 8), 4);
+  CHECK_EQ(pts[0].lat_e7, 108516200);
+  CHECK_EQ(pts[2].lon_e7, 762715560);
+  CHECK_EQ(pts[3].lat_e7, -338688000);
+  CHECK_EQ(pts[3].lon_e7, -1512093000);
+  CHECK_EQ(ctv1_json_parse_fence("[[1,2],[3,4],[5,6]]", pts, 8), 3);
+  CHECK_EQ(ctv1_json_parse_fence("[[1,2],[3,4]]", pts, 8), 0);              // needs 3 corners
+  CHECK_EQ(ctv1_json_parse_fence("[[1,2],[3,4],[5,6]]", pts, 2), 0);        // too many for the buffer
+  CHECK_EQ(ctv1_json_parse_fence("[[1,2],[3,x],[5,6]]", pts, 8), 0);
+  CHECK_EQ(ctv1_json_parse_fence("[[91,2],[3,4],[5,6]]", pts, 8), 0);       // latitude out of range
+  CHECK_EQ(ctv1_json_parse_fence("{\"points\":[[1,2],[3,4],[5,6]", pts, 8), 0);  // truncated
+}
+
 int main() {
   struct { const char *name; void (*fn)(); } tests[] = {
     {"aes", test_aes}, {"cmac", test_cmac}, {"protocol", test_protocol}, {"nmea", test_nmea},
-    {"geo", test_geo}, {"power", test_power}, {"gwlink", test_gwlink},
+    {"geo", test_geo}, {"power", test_power}, {"gwlink", test_gwlink}, {"json", test_json},
   };
   for (auto &t : tests) {
     int before = failures;

@@ -128,12 +128,20 @@ users      (id, name, role, telegram_chat_id, phone, push_subscription)
 
 ## MQTT topics
 
-| Topic | Direction | Payload |
-|---|---|---|
-| `ctv1/gw/<gw>/up` | gateway → server | `{"raw":"base64","rssi":-97,"snr":7.5,"ts":...}` |
-| `ctv1/gw/<gw>/down` | server → gateway | `{"tag":7,"cmd":"buzz","arg":30}` |
-| `ctv1/gw/<gw>/status` | gateway → server | `{"uptime":..., "wifi_rssi":..., "vbat":..., "queue":...}` |
-| `ctv1/tag/<id>/pos` | server → app (internal) | decoded position |
+All topics live under `ctv1/gw/<gw>/`, where `<gw>` is the beacon name set on its settings page
+(default `home`). The beacon decodes packets before publishing, so the server does not need the farm key.
+
+| Topic | Direction | Retained | Payload |
+|---|---|---|---|
+| `up` | beacon → server | no | `{"gw":"home","tag":7,"seq":201,"type":"position","lat":10.8512345,"lon":76.2712345,"batt_mv":3910,"batt_pct":68,"flags":["fix","moving"],"sats":9,"hdop":1.5,"activity":42,"rssi":-97,"snr":7,"ts":1792600000,"raw":"0107..."}` |
+| `status` | beacon → server | yes | every 60 s: `{"fw","uptime_s","wifi_rssi","ip","mains","radio_online","radio_reports","radio_rejected","radio_resets","commands_queued","buffered","dropped","tags_heard","fence_corners","alarm","ts"}` |
+| `online` | beacon → server | yes | `true`, or `false` from the MQTT last will when the beacon drops off |
+| `event` | beacon → server | no | `{"type":"left_fence","tag":7,"fence":"Main paddock","distance_m":31,"source":"beacon"}`. Other types: `returned`, `cmd_queued`, `cmd_done`, `power_lost`, `power_restored`, `radio_reset`, `radio_error`, `fence_updated`, `fence_invalid`, `bad_command`, `beacon_started` |
+| `down` | server → beacon | no | `{"tag":7,"cmd":"buzz","arg":30}`. `cmd` is `buzz` (seconds), `interval` (minutes), `fast` (hours, 0 = stop) or `none` |
+| `fence` | server → beacon | **yes** | `{"name":"Main paddock","points":[[10.85162,76.26634],[10.8518,76.27082],...]}`, 3–32 corners. Gives the beacon its backup fence check. |
+
+`ts` is Unix time from NTP. Reports buffered while the server was down keep the time they were
+received. `ts` is `null` only if the beacon has never had internet since it was switched on.
 
 ## Geofence check (server side)
 
