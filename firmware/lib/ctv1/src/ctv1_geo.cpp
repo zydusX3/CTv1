@@ -1,9 +1,10 @@
 #include "ctv1_geo.h"
-#include <math.h>
+#include <math.h>  // sqrtf only
+#include "ctv1_math.h"
 
 static const float M_PER_E7_DEG = 0.0111319f;  // metres per 1e-7 degree of latitude
 
-static float cos_lat(int32_t lat_e7) { return cosf((float)lat_e7 * 1e-7f * 3.14159265f / 180.0f); }
+static float cos_lat(int32_t lat_e7) { return ctv1_cos_deg((float)lat_e7 * 1e-7f); }
 
 bool ctv1_point_in_polygon(const Ctv1Point &p, const Ctv1Point *poly, uint8_t n) {
   // work relative to p so the products fit in 64 bits for any farm-sized polygon
@@ -34,7 +35,7 @@ uint32_t ctv1_distance_m(const Ctv1Point &a, const Ctv1Point &b) {
 uint16_t ctv1_bearing_deg(const Ctv1Point &a, const Ctv1Point &b) {
   float x, y;
   to_xy(a, b, cos_lat(a.lat_e7), x, y);
-  float deg = atan2f(x, y) * 180.0f / 3.14159265f;
+  float deg = ctv1_atan2_deg(x, y);
   if (deg < 0) deg += 360.0f;
   uint16_t d = (uint16_t)(deg + 0.5f);
   return d >= 360 ? 0 : d;

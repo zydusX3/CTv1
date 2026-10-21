@@ -2,6 +2,7 @@
 // Listens all the time, checks each packet's MIC, ACKs the tag (with a queued command if any)
 // and passes the packet to the ESP32 / PC as one text line. See lib/ctv1/src/ctv1_gwlink.h.
 #include <CTv1.h>
+#include <ctv1_rui3.h>
 #include "config.h"
 
 #if LINK_ON_USB
@@ -10,7 +11,6 @@
 #define LINK Serial1
 #endif
 
-static const uint8_t farm_key[16] = FARM_KEY;
 
 struct TagEntry {
   uint16_t id;
@@ -89,7 +89,7 @@ static void handle_packet(const RxPacket &p) {
     send_line("BAD", p);
     return;
   }
-  ctv1_derive_tag_key(farm_key, id, key);
+  ctv1_derive_tag_key(ctv1_cfg.farm_key, id, key);
   if (!ctv1_check_mic(p.buf, p.len, key) || !ctv1_decode_uplink(p.buf, p.len, up)) {
     bad_count++;
     send_line("BAD", p);
@@ -173,14 +173,24 @@ void setup() {
   Serial.begin(115200);                      // AT console stays available for setup
   Serial1.begin(LINK_BAUD, RAK_CUSTOM_MODE);
 #endif
+  Ctv1Settings defaults = {};
+  const uint8_t default_key[16] = DEFAULT_FARM_KEY;
+  memcpy(defaults.farm_key, default_key, 16);
+  defaults.tag_id = 1;
+  defaults.freq_hz = DEFAULT_FREQ_HZ;
+  defaults.sf = DEFAULT_SF;
+  defaults.tx_dbm = DEFAULT_TX_DBM;
+  defaults.interval_s = 600;
+  ctv1_cfg_begin(defaults, false);
+
   if (api.lora.nwm.get() != 0) api.lora.nwm.set();  // P2P mode (restarts once)
-  bool ok = api.lora.pfreq.set(LORA_FREQ_HZ) && api.lora.psf.set(LORA_SF) && api.lora.pbw.set(LORA_BW_KHZ) &&
-            api.lora.pcr.set(LORA_CR) && api.lora.ppl.set(LORA_PREAMBLE) && api.lora.ptp.set(LORA_TX_DBM);
+  bool ok = api.lora.pfreq.set(ctv1_cfg.freq_hz) && api.lora.psf.set(ctv1_cfg.sf) && api.lora.pbw.set(LORA_BW_KHZ) &&
+            api.lora.pcr.set(LORA_CR) && api.lora.ppl.set(LORA_PREAMBLE) && api.lora.ptp.set(ctv1_cfg.tx_dbm);
   api.lora.registerPRecvCallback(on_lora_recv);
   api.lora.registerPSendCallback(on_lora_sent);
   api.lora.precv(65533);  // receive continuously, can still transmit ACKs
   LINK.printf("# CTv1 home beacon radio %s, %lu Hz SF%u\r\n", ok ? "ready" : "RADIO SETUP FAILED",
-              (unsigned long)LORA_FREQ_HZ, LORA_SF);
+              (unsigned long)ctv1_cfg.freq_hz, ctv1_cfg.sf);
 }
 
 void loop() {

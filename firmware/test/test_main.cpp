@@ -1,5 +1,7 @@
 // Host-side unit tests for the shared CTv1 library. Run: make -C firmware/test
+#include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "../lib/ctv1/src/CTv1.h"
 
@@ -295,10 +297,236 @@ static void test_json() {
   CHECK_EQ(ctv1_json_parse_fence("{\"points\":[[1,2],[3,4],[5,6]", pts, 8), 0);  // truncated
 }
 
+static void test_math() {
+  double worst_s = 0, worst_a = 0;
+  for (double d = -720; d <= 720; d += 0.37) {
+    double e = fabs(ctv1_sin_deg((float)d) - sin(d * M_PI / 180));
+    if (e > worst_s) worst_s = e;
+    e = fabs(ctv1_cos_deg((float)d) - cos(d * M_PI / 180));
+    if (e > worst_s) worst_s = e;
+  }
+  for (double a = 0; a < 360; a += 0.53) {
+    static const double radii[] = {0.001, 1.0, 1234.5};
+    for (double r : radii) {
+      double y = r * sin(a * M_PI / 180), x = r * cos(a * M_PI / 180);
+      double e = fabs(ctv1_atan2_deg((float)y, (float)x) - atan2(y, x) * 180 / M_PI);
+      if (e > 180) e = 360 - e;
+      if (e > worst_a) worst_a = e;
+    }
+  }
+  CHECK(worst_s < 2e-4);
+  CHECK(worst_a < 0.01);
+  CHECK(fabs(ctv1_atan_deg(1e6f) - 90) < 0.01);
+  CHECK_EQ((int)ctv1_atan2_deg(0, 0), 0);
+}
+
+static void test_settings() {
+  CHECK_EQ(ctv1_crc32((const uint8_t *)"123456789", 9), 0xCBF43926u);  // standard check value
+
+  Ctv1Settings s = {};
+  s.tag_id = 7;
+  for (int i = 0; i < 16; i++) s.farm_key[i] = (uint8_t)(i * 17);
+  s.freq_hz = 865062500;
+  s.sf = 9;
+  s.tx_dbm = 14;
+  s.interval_s = 600;
+  s.mag_offset[0] = -120;
+  s.mag_offset[2] = 455;
+  s.mag_calibrated = true;
+  uint8_t blob[CTV1_SETTINGS_BLOB_LEN];
+  ctv1_settings_pack(s, blob);
+  Ctv1Settings t = {};
+  CHECK(ctv1_settings_unpack(blob, sizeof(blob), t));
+  CHECK_EQ(t.tag_id, 7);
+  CHECK_EQ(t.freq_hz, 865062500);
+  CHECK_EQ(t.mag_offset[0], -120);
+  CHECK_EQ(t.mag_offset[2], 455);
+  CHECK(t.mag_calibrated);
+  CHECK(memcmp(t.farm_key, s.farm_key, 16) == 0);
+
+  blob[10] ^= 1;  // corrupted flash
+  CHECK(!ctv1_settings_unpack(blob, sizeof(blob), t));
+  uint8_t blank[CTV1_SETTINGS_BLOB_LEN];
+  memset(blank, 0xFF, sizeof(blank));  // erased flash
+  CHECK(!ctv1_settings_unpack(blank, sizeof(blank), t));
+
+  CHECK_EQ(ctv1_settings_set(s, "id", "12"), CTV1_SET_OK);
+  CHECK_EQ(s.tag_id, 12);
+  CHECK_EQ(ctv1_settings_set(s, "ID", "0"), CTV1_SET_BAD_VALUE);
+  CHECK_EQ(ctv1_settings_set(s, "ID", "12a"), CTV1_SET_BAD_VALUE);
+  CHECK_EQ(ctv1_settings_set(s, "KEY", "00112233445566778899aabbccddeeff"), CTV1_SET_OK);
+  CHECK_EQ(s.farm_key[15], 0xff);
+  CHECK_EQ(ctv1_settings_set(s, "KEY", "0011"), CTV1_SET_BAD_VALUE);
+  CHECK_EQ(ctv1_settings_set(s, "FREQ", "868100000"), CTV1_SET_OK);
+  CHECK_EQ(ctv1_settings_set(s, "FREQ", "2400000000"), CTV1_SET_BAD_VALUE);
+  CHECK_EQ(ctv1_settings_set(s, "FREQ", "970000000"), CTV1_SET_BAD_VALUE);  // outside the radio's 150-960 MHz
+  CHECK_EQ(ctv1_settings_set(s, "SF", "13"), CTV1_SET_BAD_VALUE);
+  CHECK_EQ(ctv1_settings_set(s, "PWR", "20"), CTV1_SET_OK);
+  CHECK_EQ(ctv1_settings_set(s, "INT", "30"), CTV1_SET_BAD_VALUE);
+  CHECK_EQ(ctv1_settings_set(s, "INT", "300"), CTV1_SET_OK);
+  CHECK_EQ(ctv1_settings_set(s, "COLOUR", "red"), CTV1_SET_UNKNOWN);
+  CHECK_EQ(s.sf, 9);  // unchanged by the rejected value
+
+  char d[120];
+  ctv1_settings_describe(s, d, sizeof(d));
+  CHECK(strstr(d, "ID=12 FREQ=868100000 SF=9 PWR=20 INT=300 KEY=set") != nullptr);
+  CHECK(strstr(d, "0011") == nullptr);  // the key itself is never printed
+}
+
+static void test_gps_policy() {
+  uint16_t to;
+  Ctv1GpsPolicyIn in = {false, false, 0, 0, 0, 1};
+  CHECK_EQ(ctv1_gps_decide(in, to), CTV1_GPS_RUN);  // first fix ever
+  CHECK_EQ(to, 180);
+  in.ever_fixed = true;
+  in.activity_since_fix = 3;
+  in.secs_since_fix = 600;
+  CHECK_EQ(ctv1_gps_decide(in, to), CTV1_GPS_SKIP_STILL);  // lying down
+  in.secs_since_fix = 1800;
+  CHECK_EQ(ctv1_gps_decide(in, to), CTV1_GPS_RUN);  // too old, refresh anyway
+  CHECK_EQ(to, 45);
+  in.secs_since_fix = 600;
+  in.activity_since_fix = 50;
+  CHECK_EQ(ctv1_gps_decide(in, to), CTV1_GPS_RUN);  // walked
+  in.fails_in_row = 3;
+  in.report_no = 5;
+  CHECK_EQ(ctv1_gps_decide(in, to), CTV1_GPS_SKIP_BACKOFF);  // in a shed
+  in.report_no = 8;
+  CHECK_EQ(ctv1_gps_decide(in, to), CTV1_GPS_RUN);
+  CHECK_EQ(to, 90);
+  in.report_no = 5;
+  in.urgent = true;
+  CHECK_EQ(ctv1_gps_decide(in, to), CTV1_GPS_RUN);  // lost animal: always try
+  in.activity_since_fix = 0;
+  CHECK_EQ(ctv1_gps_decide(in, to), CTV1_GPS_RUN);
+}
+
+static void test_ubx() {
+  uint8_t f[64];
+  CHECK_EQ(ctv1_ubx_frame(0x0A, 0x04, nullptr, 0, f, sizeof(f)), 8);  // UBX-MON-VER poll
+  CHECK_EQ(f[6], 0x0E);
+  CHECK_EQ(f[7], 0x34);
+  size_t n = ctv1_ubx_nmea_only_gga_rmc(f, sizeof(f));
+  CHECK_EQ(n, 42);
+  CHECK_EQ(f[2], 0x06);
+  CHECK_EQ(f[3], 0x8A);
+  CHECK_EQ(f[4], 34);
+  CHECK_EQ(f[7], 0x03);                                         // RAM + BBR
+  CHECK(f[10] == 0xbb && f[11] == 0x00 && f[12] == 0x91 && f[13] == 0x20 && f[14] == 1);  // GGA on
+  CHECK_EQ(ctv1_ubx_nmea_only_gga_rmc(f, 20), 0);
+}
+
+// Earth field / gravity rotated into the body frame (yaw psi, pitch theta, roll phi; AN4248 order).
+static void to_body(const double v[3], double psi, double th, double ph, float out[3]) {
+  double c = cos(psi), s = sin(psi);
+  double a[3] = {c * v[0] + s * v[1], -s * v[0] + c * v[1], v[2]};
+  c = cos(th), s = sin(th);
+  double b[3] = {c * a[0] - s * a[2], a[1], s * a[0] + c * a[2]};
+  c = cos(ph), s = sin(ph);
+  out[0] = (float)b[0];
+  out[1] = (float)(c * b[1] + s * b[2]);
+  out[2] = (float)(-s * b[1] + c * b[2]);
+}
+
+static void test_compass() {
+  const double D = M_PI / 180, field[3] = {0.30, 0.0, 0.25}, grav[3] = {0, 0, 1};
+  const double cases[][3] = {{0, 0, 0}, {90, 0, 0}, {225, 0, 0}, {30, 20, -15}, {300, -25, 30}, {135, 10, 40}};
+  for (auto &k : cases) {
+    float a[3], m[3];
+    to_body(grav, k[0] * D, k[1] * D, k[2] * D, a);
+    to_body(field, k[0] * D, k[1] * D, k[2] * D, m);
+    int h = ctv1_compass_heading(a[0], a[1], a[2], m[0], m[1], m[2]);
+    int err = abs(h - (int)k[0]);
+    if (err > 180) err = 360 - err;
+    CHECK(err <= 1);
+  }
+  CHECK_EQ(ctv1_relative_bearing(90, 80, 10), 0);   // facing it
+  CHECK_EQ(ctv1_relative_bearing(10, 350, 0), 20);  // a little to the right
+  CHECK_EQ(ctv1_relative_bearing(270, 0, 0), 270);  // to the left
+
+  Ctv1MagCal cal;
+  cal.reset();
+  CHECK(!cal.good());
+  for (int i = 0; i < 360; i += 5) {
+    double r = i * D;
+    cal.add((int16_t)(100 + 400 * cos(r)), (int16_t)(-50 + 400 * sin(r)), (int16_t)(30 + 300 * sin(r * 2)));
+  }
+  CHECK(cal.good());
+  int16_t off[3];
+  cal.offset(off);
+  CHECK(abs(off[0] - 100) <= 2 && abs(off[1] + 50) <= 2 && abs(off[2] - 30) <= 2);
+}
+
+// Writes the screen as a PBM image when CTV1_SCREENS=<dir> is set, for a visual check.
+static void save_screen(const Ctv1Gfx &g, const char *name) {
+  const char *dir = getenv("CTV1_SCREENS");
+  if (!dir) return;
+  char path[256];
+  snprintf(path, sizeof(path), "%s/%s.pbm", dir, name);
+  FILE *f = fopen(path, "w");
+  if (!f) return;
+  fprintf(f, "P1\n%d %d\n", CTV1_GFX_W, CTV1_GFX_H);
+  for (int y = 0; y < CTV1_GFX_H; y++) {
+    for (int x = 0; x < CTV1_GFX_W; x++) fputc(g.get(x, y) ? '1' : '0', f);
+    fputc('\n', f);
+  }
+  fclose(f);
+}
+
+static void test_gfx() {
+  static Ctv1Gfx g;
+  g.clear();
+  g.pixel(3, 9);
+  CHECK(g.get(3, 9));
+  CHECK_EQ(g.buf[128 + 3], 0x02);  // page 1, bit 1
+  g.pixel(-1, 0);
+  g.pixel(200, 70);  // ignored, no crash
+  CHECK_EQ(Ctv1Gfx::text_width("ab"), 11);
+  g.clear();
+  CHECK_EQ(g.text(0, 0, "A"), 6);
+  CHECK(g.get(2, 0) && !g.get(0, 0));  // 'A' apex is in the middle column
+
+  Ctv1FindView v = {};
+  v.tag_id = 7; v.tag_index = 2; v.tag_count = 8; v.tag_batt_pct = 74; v.tag_has_pos = true;
+  v.age_s = 130; v.rssi = -96; v.have_own_fix = true; v.own_sats = 9; v.distance_m = 312;
+  v.bearing_true = 40; v.have_heading = true; v.arrow_deg = 35;
+  ctv1_draw_find(g, v);
+  save_screen(g, "1-find");
+  int lit = 0;
+  for (auto b : g.buf) lit += __builtin_popcount(b);
+  CHECK(lit > 300);
+
+  v.distance_m = 2450; v.cmd = CTV1_HH_BUZZ_WAITING; v.arrow_deg = 250;
+  ctv1_draw_find(g, v);
+  save_screen(g, "2-far-buzz");
+  v.distance_m = 18; v.cmd = CTV1_HH_BUZZ_SENT; v.age_s = 4; v.arrow_deg = 0;
+  ctv1_draw_find(g, v);
+  save_screen(g, "3-close-buzzing");
+  v.cmd = CTV1_HH_CMD_NONE; v.have_heading = false; v.tag_outside = true; v.distance_m = 640; v.bearing_true = 120; v.age_s = 4000;
+  ctv1_draw_find(g, v);
+  save_screen(g, "4-no-compass-outside");
+  v.have_own_fix = false;
+  ctv1_draw_find(g, v);
+  save_screen(g, "5-no-own-gps");
+  ctv1_draw_message(g, "CTv1 HANDHELD", "Listening for tags", "on 865.06 MHz", "none heard yet");
+  save_screen(g, "6-waiting");
+  ctv1_draw_message(g, "COMPASS", "Turn me slowly", "in every direction", "12 s left");
+  save_screen(g, "7-calibrate");
+
+  char age[8];
+  ctv1_format_age(3, age, sizeof(age));
+  CHECK(strcmp(age, "now") == 0);
+  ctv1_format_age(3725, age, sizeof(age));
+  CHECK(strcmp(age, "1h02") == 0);
+  CHECK(strcmp(ctv1_compass_point(359), "N") == 0);
+  CHECK(strcmp(ctv1_compass_point(200), "S") == 0);
+}
+
 int main() {
   struct { const char *name; void (*fn)(); } tests[] = {
     {"aes", test_aes}, {"cmac", test_cmac}, {"protocol", test_protocol}, {"nmea", test_nmea},
     {"geo", test_geo}, {"power", test_power}, {"gwlink", test_gwlink}, {"json", test_json},
+    {"math", test_math}, {"settings", test_settings}, {"gps", test_gps_policy}, {"ubx", test_ubx}, {"compass", test_compass}, {"gfx", test_gfx},
   };
   for (auto &t : tests) {
     int before = failures;

@@ -18,7 +18,7 @@ import sys
 import threading
 import time
 
-FLAGS = ["fix", "moving", "low-batt", "charging", "outside", "cmd-done"]
+FLAGS = ["fix", "moving", "low-batt", "charging", "outside", "cmd-done", "still"]
 COMMANDS = {"buzz": 1, "interval": 2, "fast": 3}
 
 

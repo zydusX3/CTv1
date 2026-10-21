@@ -145,6 +145,11 @@ All topics live under `ctv1/gw/<gw>/`, where `<gw>` is the beacon name set on it
 | `down` | server → beacon | no | `{"tag":7,"cmd":"buzz","arg":30}`. `cmd` is `buzz` (seconds), `interval` (minutes), `fast` (hours, 0 = stop) or `none` |
 | `fence` | server → beacon | **yes** | `{"name":"Main paddock","points":[[10.85162,76.26634],[10.8518,76.27082],...]}`, 3–32 corners. Gives the beacon its backup fence check. |
 
+`flags` can contain `fix`, `moving`, `low_batt`, `charging`, `outside`, `cmd_done` and `still`.
+`still` means the collar skipped its GPS because the animal hasn't moved since the last fix: the
+position is current, but the fix time is older. `type` `nofix` means no new fix and lat/lon is the
+last known position.
+
 `ts` is Unix time from NTP. Reports buffered while the server was down keep the time they were
 received. `ts` is `null` only if the beacon has never had internet since it was switched on.
 

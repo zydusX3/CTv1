@@ -76,6 +76,21 @@ the "buzz" command so you hear the animal when you are close.
    3V3 ── magnetic buzzer               ── D 2N7002 ← PA10, 1N4148 across the buzzer
 ```
 
+## Firmware
+
+`firmware/handheld` (RAK3172, RUI3). Usage, buttons and the rendered screens are in
+[firmware/README.md](../firmware/README.md#handheld-beacon).
+
+- Listens to every collar's report on the farm channel, checks each one with the farm key, and keeps
+  the last position of up to 32 collars.
+- **Buzz / fast-track without the house:** a command chosen on the handheld is sent in the collar's
+  own receive window 400 ms after its next report. That is after the home beacon's ACK, so both can
+  answer. The collar keeps listening for the whole 1.5 s window for this reason.
+- Compass: LSM303AGR, tilt-compensated, with a 20-second hard-iron calibration that is saved in flash.
+- The OLED is driven directly (SH1106 or SSD1306), with no display library, to stay small.
+
+![Handheld screens](images/handheld-screens.png)
+
 ## Bill of materials
 
 | Qty | Part | Approx. cost (USD) |

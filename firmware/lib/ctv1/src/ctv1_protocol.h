@@ -32,6 +32,7 @@ enum Ctv1Flags : uint8_t {
   CTV1_FLAG_CHARGING = 1 << 3,
   CTV1_FLAG_OUTSIDE = 1 << 4,   // tag's own fence check (only if a fence is compiled in)
   CTV1_FLAG_CMD_DONE = 1 << 5,  // the last command received was carried out
+  CTV1_FLAG_STILL = 1 << 6,     // GPS skipped: the animal has not moved since the last fix, lat/lon still current
 };
 
 struct Ctv1Uplink {

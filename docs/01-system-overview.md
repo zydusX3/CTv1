@@ -114,9 +114,10 @@ sequenceDiagram
     participant S as Server
     participant P as Phone
     Note over T: RTC wakes every 10 min<br/>(2 min when outside fence / moving)
-    T->>T: GPS on (hot start 2–5 s), read accel + battery
+    T->>T: GPS on (hot start 2–5 s) unless the animal is still, read accel + battery
     T->>G: Uplink 20 B (id, seq, lat, lon, batt, flags, MIC)
     G-->>T: ACK + optional command (buzz, new interval)
+    Note over T: keeps listening to the end of the 1.5 s window:<br/>a handheld can send a command at +400 ms
     Note over T: GPS off, sleep (Stop2)
     G->>S: MQTT ctv1/gw/home/up (JSON + RSSI/SNR)
     S->>S: Point-in-polygon check with hysteresis
@@ -148,7 +149,7 @@ gateway is one cheap module instead of an 8-channel concentrator.
 | 4–7 | `lat` | int32, degrees × 1e7 |
 | 8–11 | `lon` | int32, degrees × 1e7 |
 | 12 | `batt` | (mV − 2000) / 10 → 2.00–4.55 V |
-| 13 | `flags` | bit0 fix ok, bit1 moving, bit2 low batt, bit3 solar charging, bit4 outside fence (local check), bit5 last command carried out |
+| 13 | `flags` | bit0 fix ok, bit1 moving, bit2 low batt, bit3 solar charging, bit4 outside fence (local check), bit5 last command carried out, bit6 still (GPS skipped because the animal hasn't moved; lat/lon is still current) |
 | 14 | `sats_hdop` | high nibble sats (0–15), low nibble HDOP (0–15 ×0.5) |
 | 15 | `activity` | accelerometer movement count since last report (0–255) |
 | 16–19 | `mic` | first 4 bytes of AES-128-CMAC over bytes 0–15 with the tag key. Tag key = AES(farm key, "CT1" + tag_id), so the home beacon only stores the farm key. |

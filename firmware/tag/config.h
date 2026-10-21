@@ -1,31 +1,33 @@
 #pragma once
-// ---- Per-tag settings: change TAG_ID for every collar you flash ----
-#define TAG_ID 1
+// Defaults for a collar tag. The ID, farm key, radio and interval can also be set per collar with
+// ATC+ commands over the programming port and are then kept in flash (see firmware/README.md),
+// so the same build can be flashed onto every collar.
 
-// Farm key: 16 random bytes, the SAME on every tag and on the home beacon. Keep it private.
+// ---- Defaults used until ATC+ settings are saved ----
+#define DEFAULT_TAG_ID 1
+// 16 random bytes, the SAME on every tag, the home beacon and the handheld. Keep it private.
 // Make one with:  python3 -c "import os; print(', '.join('0x%02x' % b for b in os.urandom(16)))"
-#define FARM_KEY {0x43, 0x54, 0x76, 0x31, 0x2d, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x2d, 0x6d, 0x65, 0x21, 0x21}
+#define DEFAULT_FARM_KEY {0x43, 0x54, 0x76, 0x31, 0x2d, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x2d, 0x6d, 0x65, 0x21, 0x21}
+#define DEFAULT_FREQ_HZ 865062500  // IN865 example. EU868: 868100000, US915: 903900000, AU915: 916800000
+#define DEFAULT_SF 9
+#define DEFAULT_TX_DBM 14          // raise to 20-22 only where your region allows it
+#define DEFAULT_INTERVAL_S 600     // normal: every 10 min
 
-// ---- Radio: must match the home beacon. Pick a frequency legal in your country ----
-#define LORA_FREQ_HZ 865062500  // IN865 example. EU868: 868100000, US915: 903900000, AU915: 916800000
-#define LORA_SF 9
+// ---- Radio (fixed) ----
 #define LORA_BW_KHZ 125
 #define LORA_CR 0               // 0 = 4/5
 #define LORA_PREAMBLE 8
-#define LORA_TX_DBM 14          // raise to 20-22 only where your region allows it
-#define RX_WINDOW_MS 1500       // how long the tag listens for the ACK after sending
+#define RX_WINDOW_MS 1500       // listens this long after sending: home beacon ACK, then maybe a handheld command
 
 // ---- Reporting ----
-#define REPORT_INTERVAL_S 600     // normal: every 10 min
 #define REPORT_JITTER_S 30        // random 0..30 s added so tags never stay in step
 #define FIRST_REPORT_S 10         // first report after power-up
 #define RETRY_MIN_MS 5000         // one retry if no ACK, after 5..15 s
 #define RETRY_MAX_MS 15000
 
 // ---- GPS (u-blox MAX-M10S, NMEA at 9600 baud) ----
+// Fix timeouts and when to skip the GPS are in lib/ctv1/src/ctv1_power.h (ctv1_gps_decide).
 #define GPS_BAUD 9600
-#define GPS_FIRST_FIX_TIMEOUT_S 180  // cold start, almanac not yet stored
-#define GPS_FIX_TIMEOUT_S 45         // hot start normally takes 2-5 s
 #define GPS_GOOD_HDOP_X10 25         // stop as soon as HDOP <= 2.5
 
 // ---- Accelerometer (LIS3DH) ----

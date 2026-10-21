@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-static const char *FLAG_NAMES[] = {"fix", "moving", "low_batt", "charging", "outside", "cmd_done"};
+static const char *FLAG_NAMES[] = {"fix", "moving", "low_batt", "charging", "outside", "cmd_done", "still"};
 static const char *CMD_NAMES[] = {"none", "buzz", "interval", "fast"};
 
 size_t ctv1_format_e7(char *out, size_t out_len, int32_t v) {
@@ -18,7 +18,7 @@ size_t ctv1_json_uplink(char *out, size_t out_len, const char *gw_id, const Ctv1
   char lat[16], lon[16], flags[80] = "", ts[24] = "null", hex[2 * 32 + 1];
   ctv1_format_e7(lat, sizeof(lat), up.lat_e7);
   ctv1_format_e7(lon, sizeof(lon), up.lon_e7);
-  for (int i = 0; i < 6; i++) {
+  for (int i = 0; i < 7; i++) {
     if (!(up.flags & (1 << i))) continue;
     size_t l = strlen(flags);
     snprintf(flags + l, sizeof(flags) - l, "%s\"%s\"", l ? "," : "", FLAG_NAMES[i]);

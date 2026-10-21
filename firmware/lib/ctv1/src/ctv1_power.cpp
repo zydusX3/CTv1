@@ -27,3 +27,16 @@ uint32_t ctv1_next_interval_s(const Ctv1ScheduleIn &in) {
 }
 
 uint32_t ctv1_jitter_s(uint32_t random_value, uint32_t max_s) { return max_s ? random_value % (max_s + 1) : 0; }
+
+Ctv1GpsDecision ctv1_gps_decide(const Ctv1GpsPolicyIn &in, uint16_t &timeout_s) {
+  timeout_s = 45;
+  if (!in.ever_fixed) {  // cold start: the module needs time to download the almanac
+    timeout_s = 180;
+    return CTV1_GPS_RUN;
+  }
+  if (in.urgent) return CTV1_GPS_RUN;
+  if (in.activity_since_fix < CTV1_STILL_ACTIVITY && in.secs_since_fix < CTV1_STILL_MAX_AGE_S) return CTV1_GPS_SKIP_STILL;
+  if (in.fails_in_row >= CTV1_GPS_FAILS_BEFORE_BACKOFF && in.report_no % CTV1_GPS_BACKOFF_EVERY != 0) return CTV1_GPS_SKIP_BACKOFF;
+  if (in.fails_in_row >= CTV1_GPS_FAILS_BEFORE_BACKOFF) timeout_s = 90;  // the occasional attempt gets longer
+  return CTV1_GPS_RUN;
+}
