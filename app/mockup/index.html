@@ -306,7 +306,27 @@ td.mono { font-family: var(--f-mono); }
 }
 :root[data-mode="simple"] .zbtn.wide { width: 64px; padding: 0; font-size: 14px; line-height: 1.1; }
 :root[data-mode="simple"] .cow .name { font-weight: 700; }
-:root[data-mode="simple"] .toast { font-size: 17px; padding: 14px 20px; bottom: auto; top: calc(96px + env(safe-area-inset-top, 0px)); }
+:root[data-mode="simple"] .toast {
+  font-size: 17px; padding: 14px 20px; transform: none; max-width: none;
+  left: max(16px, env(safe-area-inset-left, 0px)); right: calc(100px + env(safe-area-inset-right, 0px));
+}
+:root[data-mode="simple"] .app { grid-template-rows: auto auto minmax(0, 1fr); }
+
+/* Simple view status line: one sentence, colour + icon + words */
+.status-line {
+  display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; cursor: pointer;
+  padding: 14px 18px; border-radius: 12px; border: 2px solid transparent;
+  font-size: 21px; font-weight: 600; line-height: 1.25;
+}
+.status-line .ico { flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 21px; font-weight: 700; }
+.status-line small { display: block; font-size: 15px; font-weight: 400; margin-top: 2px; }
+.status-line.ok { background: var(--ok-soft); color: var(--fg); border-color: var(--ok); }
+.status-line.ok .ico { background: var(--ok); color: var(--surface); }
+.status-line.warn { background: var(--warn-soft); color: var(--fg); border-color: var(--warn); }
+.status-line.warn .ico { background: var(--warn); color: var(--surface); }
+.status-line.crit { background: var(--crit); color: var(--crit-ink); border-color: var(--crit); }
+.status-line.crit .ico { background: var(--crit-ink); color: var(--crit); }
+@media (max-width: 480px) { .status-line { font-size: 18px; padding: 12px 14px; } .status-line small { font-size: 14px; } }
 
 @media (max-width: 880px) {
   :root:not([data-mode="simple"]), :root:not([data-mode="simple"]) body { height: auto; }
@@ -335,6 +355,8 @@ td.mono { font-family: var(--f-mono); }
     <div class="stats" id="stats"></div>
     <button class="mode-btn" id="modeBtn" type="button">Advanced</button>
   </header>
+
+  <button class="status-line simple-only ok" id="statusLine" type="button" aria-live="polite"></button>
 
   <div class="shell">
     <section class="mapwrap" aria-label="Farm map">
@@ -616,6 +638,7 @@ td.mono { font-family: var(--f-mono); }
     if (c.mode !== 'graze') return;
     breakoutDone = true;
     c.mode = 'escape';
+    c.manualFast = now() + 60;   // tag reports "moving", so it reports every 2 min
     c.nextAt = Math.min(c.nextAt, now() + 2);
     toast('Demo: Moti (#02) is heading for a gap in the east fence…');
   }
@@ -682,6 +705,31 @@ td.mono { font-family: var(--f-mono); }
       }
       if (c.tag === selected && g.lastChild !== el) g.appendChild(el);
     });
+  }
+
+  // Simple view: one plain sentence about the whole herd. Tapping it zooms to whoever needs attention.
+  function renderStatusLine() {
+    const out = herd.filter(c => status(c) === 'out'), stale = herd.filter(c => status(c) === 'stale');
+    const names = list => list.map(c => c.name).join(list.length === 2 ? ' and ' : ', ');
+    const safe = herd.length - out.length - stale.length;
+    let cls, icon, main, sub;
+    if (out.length) {
+      cls = 'crit'; icon = '!';
+      main = `${names(out)} ${out.length === 1 ? 'is' : 'are'} outside the fence`;
+      sub = `Tap to see where. ${safe} of ${herd.length} cows are safe.`;
+    } else if (stale.length) {
+      cls = 'warn'; icon = '?';
+      main = `${names(stale)} ${stale.length === 1 ? 'has' : 'have'} no signal`;
+      sub = `Last seen ${ago(Math.min(...stale.map(c => c.last)))}. The other ${safe} are safe.`;
+    } else {
+      cls = 'ok'; icon = '✓';
+      main = `All ${herd.length} cows are safe`;
+      sub = `Inside the fence · updated ${fmt(now())}`;
+    }
+    const el = $('statusLine');
+    el.className = `status-line simple-only ${cls}`;
+    el.innerHTML = `<span class="ico" aria-hidden="true">${icon}</span><span>${esc(main)}<small>${esc(sub)}</small></span>`;
+    el.dataset.focus = (out.length ? out : stale).map(c => c.tag).join(',');
   }
 
   function renderStats() {
@@ -818,7 +866,7 @@ td.mono { font-family: var(--f-mono); }
   };
 
   function render() {
-    renderMap(); renderStats(); renderPane();
+    renderMap(); renderStats(); renderStatusLine(); renderPane();
     $('tEdit').setAttribute('aria-pressed', editMode);
     $('tTrails').setAttribute('aria-pressed', allTrails);
     $('tPause').setAttribute('aria-pressed', paused);
@@ -856,7 +904,7 @@ td.mono { font-family: var(--f-mono); }
   }
   function showAll() {
     if (!simple()) return fitBox(0, 0, 1000, 700, 0);
-    const xs = herd.map(c => c.x).concat(135), ys = herd.map(c => c.y).concat(600);
+    const xs = herd.map(c => c.x).concat(135), ys = herd.map(c => c.y).concat(660);
     fitBox(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys), 64);
   }
   function zoomAt(factor, sx, sy) {   // sx, sy: point in map units that stays put
@@ -915,6 +963,13 @@ td.mono { font-family: var(--f-mono); }
     try { localStorage.setItem('ctv1-mode', mode); } catch (e) {}
     requestAnimationFrame(() => { showAll(); render(); });
   }
+  $('statusLine').addEventListener('click', () => {
+    const tags = $('statusLine').dataset.focus;
+    if (!tags) return showAll();
+    const list = herd.filter(c => tags.split(',').includes(c.tag));
+    if (list.length === 1) { view.cx = list[0].x; view.cy = list[0].y; view.w = Math.min(view.w, 360); applyView(); }
+    else fitBox(Math.min(...list.map(c => c.x)), Math.min(...list.map(c => c.y)), Math.max(...list.map(c => c.x)), Math.max(...list.map(c => c.y)), 64);
+  });
   $('modeBtn').addEventListener('click', () => setMode(simple() ? 'advanced' : 'simple'));
 
   // ---------- interactions ----------

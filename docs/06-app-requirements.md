@@ -37,7 +37,7 @@ wants to glance at the herd. One button in the top corner switches to **Advanced
 
 | | Simple view | Advanced view |
 |---|---|---|
-| Shows | Map with the animals, their names, and the house. Paddock fences stay visible as context. | Map plus herd list, alerts, fences, devices, trails, handheld |
+| Shows | One status line in plain words, then the map with the animals, their names, and the house. Paddock fences stay visible as context. | Map plus herd list, alerts, fences, devices, trails, handheld |
 | Controls | Big **+**, **−** and **Show all** buttons (64 px), pinch and drag | Same zoom plus editing tools |
 | Text | Large names; problems written in words on the map ("Moti · outside", "Lily · no signal") and shown in red | Status pills, numbers, signal details |
 | Tap an animal | Zooms in on it | Opens its detail card |
@@ -49,6 +49,11 @@ Requirements:
 - S2. Touch targets at least 48 px, body text at least 16 px, high contrast in light and dark.
 - S3. Markers and labels keep the same on-screen size at every zoom level.
 - S4. "Show all" fits all animals and the house on screen.
+- S5. Status line above the map, one sentence, colour + icon + words (never colour alone):
+  - red "Moti is outside the fence", "6 of 8 cows are safe"
+  - amber "Lily has no signal", "last seen 1 h ago. The other 7 are safe."
+  - green "All 8 cows are safe", "updated 07:20"
+  Tapping it zooms to the animal(s) it names.
 
 ### Map
 - F1. Live map of all animals with a marker per tag (tag number + name), updating within
