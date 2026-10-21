@@ -30,6 +30,26 @@ flowchart LR
 
 ## Functional requirements
 
+### Two views: Simple and Advanced
+The app opens in **Simple view**, made for elderly family members and anyone who just
+wants to glance at the herd. One button in the top corner switches to **Advanced view**
+(the full app), and the choice is remembered on that phone.
+
+| | Simple view | Advanced view |
+|---|---|---|
+| Shows | Map with the animals, their names, and the house. Paddock fences stay visible as context. | Map plus herd list, alerts, fences, devices, trails, handheld |
+| Controls | Big **+**, **−** and **Show all** buttons (64 px), pinch and drag | Same zoom plus editing tools |
+| Text | Large names; problems written in words on the map ("Moti · outside", "Lily · no signal") and shown in red | Status pills, numbers, signal details |
+| Tap an animal | Zooms in on it | Opens its detail card |
+| When a critical alert fires | Map zooms out to show every animal, message shown in large text | Alert list + toast |
+| Hidden | Everything else: no menus, settings, numbers or editing | — |
+
+Requirements:
+- S1. Simple view is the default for a new install; the mode can be locked by the owner (v1.1).
+- S2. Touch targets at least 48 px, body text at least 16 px, high contrast in light and dark.
+- S3. Markers and labels keep the same on-screen size at every zoom level.
+- S4. "Show all" fits all animals and the house on screen.
+
 ### Map
 - F1. Live map of all animals with a marker per tag (tag number + name), updating within
   5 s of the gateway receiving a packet (WebSocket).

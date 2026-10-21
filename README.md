@@ -10,4 +10,4 @@ beacon (LoRa → WiFi gateway) and a handheld beacon for finding animals in the 
 | [04 · Handheld beacon](docs/04-hardware-handheld.md) | Schematic, BOM, screen behaviour |
 | [05 · Expansion](docs/05-expansion.md) | Add-ons for each device and the app |
 | [06 · App requirements](docs/06-app-requirements.md) | Map, geofence and alert requirements, stack, data model |
-| [UI mockup](app/mockup/index.html) | Open in a browser: simulated herd, editable fence, alerts |
+| [UI mockup](app/mockup/index.html) | Open in a browser: Simple view (map only, big zoom buttons) and Advanced view (herd, alerts, fence editing) |

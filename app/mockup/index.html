@@ -118,7 +118,7 @@ button { font: inherit; color: inherit; }
 }
 .map-note b { color: var(--fg); font-weight: 600; }
 .legend { position: absolute; left: 10px; bottom: 10px; display: flex; flex-wrap: wrap; gap: 4px 12px;
-  background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px; font-size: 11.5px; color: var(--muted); max-width: calc(100% - 20px); }
+  background: var(--surface); border: 1px solid var(--line); border-radius: 7px; padding: 6px 10px; font-size: 11.5px; color: var(--muted); max-width: calc(100% - 120px); }
 .legend span { display: inline-flex; align-items: center; gap: 5px; }
 .sw { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid var(--tag-ink); background: var(--tag); flex: none; }
 .sw.out { background: var(--crit); border-color: var(--crit); }
@@ -267,11 +267,54 @@ td.mono { font-family: var(--f-mono); }
   max-width: min(460px, calc(100% - 32px)); box-shadow: 0 6px 24px rgba(0,0,0,.25); z-index: 20;
 }
 
+/* ---------- zoom + mode switch ---------- */
+.zoom { position: absolute; right: 10px; bottom: 10px; display: flex; flex-direction: column; gap: 6px; }
+.zbtn {
+  width: 38px; height: 38px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface);
+  font-size: 20px; font-weight: 600; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0;
+}
+.zbtn.wide { width: auto; padding: 0 10px; font-size: 12.5px; font-weight: 500; }
+.zbtn:hover { border-color: var(--muted); }
+.mode-btn {
+  border: 1px solid var(--line); background: var(--surface); padding: 5px 12px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.mode-btn:hover { border-color: var(--muted); }
+.cow .name, .home-label { paint-order: stroke; stroke: var(--ground); stroke-width: 4px; stroke-linejoin: round; }
+.home-label { fill: var(--map-ink); font-family: var(--f-body); font-weight: 600; font-size: 12px; }
+
+/* Simple view: map only, big targets, big type */
+:root[data-mode="simple"] .stats,
+:root[data-mode="simple"] .panel,
+:root[data-mode="simple"] .map-tools,
+:root[data-mode="simple"] .legend,
+:root[data-mode="simple"] .map-note,
+:root[data-mode="simple"] .adv-only { display: none; }
+:root:not([data-mode="simple"]) .simple-only { display: none; }
+:root[data-mode="simple"] .shell { grid-template-columns: 1fr; }
+:root[data-mode="simple"] .brand h1 { font-size: 34px; }
+:root[data-mode="simple"] .brand small { font-size: 15px; }
+:root[data-mode="simple"] .brand svg { width: 38px; height: 43px; }
+:root[data-mode="simple"] .top { flex-wrap: nowrap; justify-content: space-between; }
+:root[data-mode="simple"] .mode-btn {
+  margin-left: auto; font-size: 17px; padding: 12px 18px; border-radius: 12px; border-width: 2px; border-color: var(--fg);
+}
+:root[data-mode="simple"] .zoom { right: calc(14px + env(safe-area-inset-right, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); gap: 10px; }
+:root[data-mode="simple"] .zbtn {
+  width: 64px; height: 64px; border-radius: 14px; font-size: 34px; border: 2px solid var(--fg);
+  box-shadow: 0 2px 10px rgba(0,0,0,.18);
+}
+:root[data-mode="simple"] .zbtn.wide { width: 64px; padding: 0; font-size: 14px; line-height: 1.1; }
+:root[data-mode="simple"] .cow .name { font-weight: 700; }
+:root[data-mode="simple"] .toast { font-size: 17px; padding: 14px 20px; bottom: auto; top: calc(96px + env(safe-area-inset-top, 0px)); }
+
 @media (max-width: 880px) {
-  html, body { height: auto; }
-  .app { height: auto; }
+  :root:not([data-mode="simple"]), :root:not([data-mode="simple"]) body { height: auto; }
+  :root:not([data-mode="simple"]) .app { height: auto; }
   .shell { grid-template-columns: 1fr; }
-  .mapwrap { aspect-ratio: 10 / 8.4; max-width: 100%; }
+  :root:not([data-mode="simple"]) .mapwrap { aspect-ratio: 10 / 8.4; max-width: 100%; }
+  :root[data-mode="simple"] .brand h1 { font-size: 28px; }
+  :root[data-mode="simple"] .brand small { display: none; }
   .map-note { display: none; }
   .panel { overflow: visible; }
   .pane { overflow: visible; }
@@ -287,9 +330,10 @@ td.mono { font-family: var(--f-mono); }
   <header class="top">
     <div class="brand">
       <svg viewBox="0 0 30 34" aria-hidden="true"><path d="M4 6 Q4 2 8 2 H22 Q26 2 26 6 V24 Q26 31 15 32 Q4 31 4 24 Z" fill="var(--tag)" stroke="var(--tag-ink)" stroke-width="2"/><circle cx="15" cy="7" r="2.6" fill="var(--bg)" stroke="var(--tag-ink)" stroke-width="1.4"/><text x="15" y="22" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="11" fill="var(--tag-ink)">CT</text></svg>
-      <h1>CTv1 Herd<small>Sample farm · demo data, 1 s = 2 min</small></h1>
+      <h1><span class="adv-only">CTv1 Herd</span><span class="simple-only">My cattle</span><small>Sample farm · demo data, 1 s = 2 min</small></h1>
     </div>
     <div class="stats" id="stats"></div>
+    <button class="mode-btn" id="modeBtn" type="button">Advanced</button>
   </header>
 
   <div class="shell">
@@ -314,26 +358,32 @@ td.mono { font-family: var(--f-mono); }
           <rect x="468" y="342" width="26" height="12" rx="3" fill="var(--water)" stroke="var(--map-ink)" stroke-width="1.2"/>
           <text class="m-small" x="500" y="353">Trough</text>
         </g>
-        <!-- house + home beacon -->
-        <g>
+        <!-- house + home beacon (drawn around its own origin so it can keep a constant screen size) -->
+        <g class="adv-only">
           <circle class="gw-ring" cx="135" cy="590" r="70"/>
           <circle class="gw-ring" cx="135" cy="590" r="140"/>
-          <rect class="m-house" x="108" y="586" width="54" height="34" rx="2"/>
-          <path class="m-house" d="M102 588 L135 566 L168 588 Z"/>
-          <line x1="150" y1="572" x2="150" y2="540" stroke="var(--map-ink)" stroke-width="2.5"/>
-          <circle cx="150" cy="538" r="4" fill="var(--accent)"/>
-          <text class="m-small" x="176" y="602" font-weight="600">House · home beacon</text>
         </g>
-        <g id="trails"></g>
-        <g id="handheld"></g>
+        <g transform="translate(135 600)">
+          <g id="home">
+            <rect class="m-house" x="-27" y="-14" width="54" height="34" rx="2"/>
+            <path class="m-house" d="M-33 -12 L0 -34 L33 -12 Z"/>
+            <rect x="-6" y="4" width="12" height="16" fill="var(--ground)"/>
+            <line class="adv-only" x1="15" y1="-28" x2="15" y2="-60" stroke="var(--map-ink)" stroke-width="2.5"/>
+            <circle class="adv-only" cx="15" cy="-62" r="4" fill="var(--accent)"/>
+            <text class="home-label adv-only" x="41" y="2">House · home beacon</text>
+            <text class="home-label simple-only" x="0" y="40" text-anchor="middle" font-size="16">Home</text>
+          </g>
+        </g>
+        <g id="trails" class="adv-only"></g>
+        <g id="handheld" class="adv-only"></g>
         <g id="cows"></g>
         <g id="handles"></g>
         <!-- north arrow + scale bar (1 unit = 1 m) -->
-        <g transform="translate(960 640)" aria-hidden="true">
+        <g class="adv-only" transform="translate(960 640)" aria-hidden="true">
           <path d="M0 -26 L8 0 L0 -6 L-8 0 Z" fill="var(--map-ink)"/>
           <text class="m-small" x="0" y="14" text-anchor="middle" font-weight="600">N</text>
         </g>
-        <g transform="translate(24 668)" aria-hidden="true">
+        <g class="adv-only" transform="translate(24 668)" aria-hidden="true">
           <rect x="0" y="0" width="100" height="6" fill="var(--map-ink)"/>
           <rect x="50" y="0" width="50" height="6" fill="var(--surface)" stroke="var(--map-ink)" stroke-width="1"/>
           <text class="m-mono" x="0" y="-5">0</text>
@@ -346,6 +396,11 @@ td.mono { font-family: var(--f-mono); }
         <button class="tool" id="tTrails" aria-pressed="false" type="button">All trails</button>
         <button class="tool" id="tPause" aria-pressed="false" type="button">Pause</button>
         <button class="tool danger" id="tBreak" type="button">Simulate breakout</button>
+      </div>
+      <div class="zoom">
+        <button class="zbtn" id="zIn" type="button" aria-label="Zoom in">+</button>
+        <button class="zbtn" id="zOut" type="button" aria-label="Zoom out">−</button>
+        <button class="zbtn wide" id="zAll" type="button">Show all</button>
       </div>
       <div class="legend" aria-hidden="true">
         <span><i class="sw"></i>Inside</span>
@@ -450,7 +505,10 @@ td.mono { font-family: var(--f-mono); }
   let alertSeq = 0;
   function raise(sev, msg, tag, at = now(), acked = false) {
     alerts.unshift({ id: ++alertSeq, sev, msg, tag, at, acked, ackAt: acked ? at + 4 : null });
-    if (sev === 'crit' && !acked) toast(msg);
+    if (sev === 'crit' && !acked) {
+      toast(msg);
+      if (simple()) showAll();   // simple view: make sure the animal in trouble is on screen
+    }
   }
   raise('info', 'Home beacon back on mains power after a 6 min power cut', null, START - 290, true);
   raise('warn', 'Bruno (#07) battery below 60 %, solar charging resumed', '07', START - 95, true);
@@ -592,6 +650,10 @@ td.mono { font-family: var(--f-mono); }
       `<rect class="hh-body" x="${HANDHELD.x - 8}" y="${HANDHELD.y - 12}" width="16" height="24" rx="4"/>` +
       `<text class="m-small" x="${HANDHELD.x + 14}" y="${HANDHELD.y + 18}" font-weight="600">Handheld</text>`;
 
+    // markers and the house keep a constant on-screen size whatever the zoom
+    const k = markerPx() / 14 / pxPerUnit();
+    $('home').setAttribute('transform', `scale(${(k * (simple() ? 1.15 : 0.95)).toFixed(3)})`);
+
     const g = $('cows');
     herd.forEach(c => {
       let el = g.querySelector(`[data-tag="${c.tag}"]`);
@@ -600,10 +662,15 @@ td.mono { font-family: var(--f-mono); }
         el.setAttribute('data-tag', c.tag);
         el.setAttribute('tabindex', '0');
         el.setAttribute('role', 'button');
-        el.innerHTML = `<g class="fx"></g><circle class="ring" r="21"/><circle class="body" r="14"/><text class="num">${c.tag}</text><text class="name" x="0" y="29">${esc(c.name)}</text>`;
+        el.innerHTML = `<g class="ci"><g class="fx"></g><circle class="ring" r="21"/><circle class="body" r="14"/><text class="num">${c.tag}</text><text class="name" x="0" y="29"></text></g>`;
         g.appendChild(el);
       }
       const st = status(c);
+      el.querySelector('.ci').setAttribute('transform', `scale(${k.toFixed(3)})`);
+      const label = simple() && st === 'out' ? `${c.name} · outside` : simple() && st === 'stale' ? `${c.name} · no signal` : c.name;
+      const nameEl = el.querySelector('.name');
+      if (nameEl.textContent !== label) nameEl.textContent = label;
+      nameEl.style.fill = simple() && st === 'out' ? 'var(--crit)' : '';
       el.setAttribute('class', 'cow' + (st === 'out' ? ' out' : '') + (st === 'stale' ? ' stale' : '') + (c.tag === selected ? ' sel' : ''));
       el.setAttribute('aria-label', `${c.name}, tag ${c.tag}, ${STATUS_TXT[st]}`);
       el.style.transform = `translate(${c.x.toFixed(1)}px, ${c.y.toFixed(1)}px)`;
@@ -766,9 +833,101 @@ td.mono { font-family: var(--f-mono); }
     toastTimer = setTimeout(() => { t.hidden = true; }, 3800);
   }
 
+  // ---------- view: zoom + pan (viewBox in metres, always matching the map box's shape) ----------
+  const svg = $('map');
+  const view = { cx: 500, cy: 350, w: 1000 };
+  const MIN_W = 120, MAX_W = 1400;
+  const mapSize = () => { const r = svg.getBoundingClientRect(); return { w: r.width || 1, h: r.height || 1 }; };
+  const pxPerUnit = () => mapSize().w / view.w;
+  const markerPx = () => simple() ? (mapSize().w < 500 ? 14 : 17) : 11;   // marker radius on screen
+  function applyView() {
+    const s = mapSize(), h = view.w * s.h / s.w;
+    view.cx = Math.max(0, Math.min(1000, view.cx));
+    view.cy = Math.max(0, Math.min(700, view.cy));
+    svg.setAttribute('viewBox', `${(view.cx - view.w / 2).toFixed(1)} ${(view.cy - h / 2).toFixed(1)} ${view.w.toFixed(1)} ${h.toFixed(1)}`);
+    renderMap();
+  }
+  function fitBox(x0, y0, x1, y1, padPx) {   // padPx: screen margin so markers and labels are not cut off
+    const s = mapSize();
+    const fx = Math.max(0.3, 1 - 2 * padPx / s.w), fy = Math.max(0.3, 1 - 2 * padPx / s.h);
+    view.cx = (x0 + x1) / 2; view.cy = (y0 + y1) / 2;
+    view.w = Math.max(MIN_W, Math.min(MAX_W, Math.max((x1 - x0) / fx, (y1 - y0) / fy * s.w / s.h)));
+    applyView();
+  }
+  function showAll() {
+    if (!simple()) return fitBox(0, 0, 1000, 700, 0);
+    const xs = herd.map(c => c.x).concat(135), ys = herd.map(c => c.y).concat(600);
+    fitBox(Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys), 64);
+  }
+  function zoomAt(factor, sx, sy) {   // sx, sy: point in map units that stays put
+    const nw = Math.max(MIN_W, Math.min(MAX_W, view.w / factor)), f = nw / view.w;
+    if (sx !== undefined) { view.cx = sx + (view.cx - sx) * f; view.cy = sy + (view.cy - sy) * f; }
+    view.w = nw;
+    applyView();
+  }
+  const toSvg = (x, y) => { const p = svg.createSVGPoint(); p.x = x; p.y = y; return p.matrixTransform(svg.getScreenCTM().inverse()); };
+
+  $('zIn').addEventListener('click', () => zoomAt(1.6));
+  $('zOut').addEventListener('click', () => zoomAt(1 / 1.6));
+  $('zAll').addEventListener('click', showAll);
+  svg.addEventListener('wheel', e => { e.preventDefault(); const p = toSvg(e.clientX, e.clientY); zoomAt(Math.pow(1.0015, -e.deltaY), p.x, p.y); }, { passive: false });
+
+  // one finger / mouse drags the map, two fingers pinch-zoom
+  const pointers = new Map();
+  let panMoved = false, pinchDist = 0;
+  svg.addEventListener('pointerdown', e => {
+    if (e.target.closest('.f-handle')) return;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) panMoved = false;
+    if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinchDist = Math.hypot(a.x - b.x, a.y - b.y); }
+  });
+  window.addEventListener('pointermove', e => {
+    const prev = pointers.get(e.pointerId);
+    if (!prev || drag) return;
+    const cur = { x: e.clientX, y: e.clientY };
+    if (pointers.size === 1) {
+      if (!panMoved && Math.hypot(cur.x - prev.x, cur.y - prev.y) < 6) return;
+      panMoved = true;
+      const u = 1 / pxPerUnit();
+      view.cx -= (cur.x - prev.x) * u; view.cy -= (cur.y - prev.y) * u;
+      pointers.set(e.pointerId, cur);
+      applyView();
+    } else if (pointers.size === 2) {
+      pointers.set(e.pointerId, cur);
+      const [a, b] = [...pointers.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinchDist) { const m = toSvg((a.x + b.x) / 2, (a.y + b.y) / 2); zoomAt(d / pinchDist, m.x, m.y); }
+      pinchDist = d; panMoved = true;
+    }
+  });
+  const dropPointer = e => { pointers.delete(e.pointerId); if (pointers.size < 2) pinchDist = 0; };
+  window.addEventListener('pointerup', dropPointer);
+  window.addEventListener('pointercancel', dropPointer);
+  new ResizeObserver(() => applyView()).observe($('map').parentElement);
+
+  // ---------- simple / advanced mode ----------
+  function simple() { return document.documentElement.dataset.mode === 'simple'; }
+  function setMode(mode) {
+    document.documentElement.dataset.mode = mode;
+    $('modeBtn').textContent = mode === 'simple' ? 'Advanced ›' : '‹ Simple view';
+    $('modeBtn').setAttribute('aria-label', mode === 'simple' ? 'Open advanced view with herd list, alerts and fences' : 'Back to simple map view');
+    if (mode === 'simple') editMode = false;
+    try { localStorage.setItem('ctv1-mode', mode); } catch (e) {}
+    requestAnimationFrame(() => { showAll(); render(); });
+  }
+  $('modeBtn').addEventListener('click', () => setMode(simple() ? 'advanced' : 'simple'));
+
   // ---------- interactions ----------
-  function select(tag) { selected = tag; tab = 'herd'; render(); }
-  $('cows').addEventListener('click', e => { const g = e.target.closest('.cow'); if (g) select(g.dataset.tag); });
+  function select(tag) {
+    if (simple()) {   // simple view: tapping a cow just zooms to it
+      const c = herd.find(x => x.tag === tag);
+      view.cx = c.x; view.cy = c.y; view.w = Math.min(view.w, 320);
+      applyView();
+      return;
+    }
+    selected = tag; tab = 'herd'; render();
+  }
+  $('cows').addEventListener('click', e => { const g = e.target.closest('.cow'); if (g && !panMoved) select(g.dataset.tag); });
   $('cows').addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target.closest('.cow')) { e.preventDefault(); select(e.target.closest('.cow').dataset.tag); } });
 
   document.querySelector('.tabs').addEventListener('click', e => { const t = e.target.closest('.tab'); if (t) { tab = t.dataset.tab; render(); } });
@@ -802,15 +961,13 @@ td.mono { font-family: var(--f-mono); }
   $('tBreak').addEventListener('click', () => { breakoutDone = false; breakout(); render(); });
 
   // fence vertex dragging (window listeners so re-renders never drop the drag)
-  const svg = $('map');
-  const toSvg = e => { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); };
   $('handles').addEventListener('pointerdown', e => {
     const h = e.target.closest('.f-handle'); if (!h) return;
     e.preventDefault(); drag = { i: +h.dataset.i };
   });
   window.addEventListener('pointermove', e => {
     if (!drag) return;
-    const p = toSvg(e);
+    const p = toSvg(e.clientX, e.clientY);
     fence('main').pts[drag.i] = [Math.max(0, Math.min(1000, Math.round(p.x))), Math.max(0, Math.min(700, Math.round(p.y)))];
     renderMap(); if (tab === 'fences') renderPane();
   });
@@ -821,7 +978,10 @@ td.mono { font-family: var(--f-mono); }
     render();
   });
 
-  render();
+  let startMode = 'simple';
+  try { startMode = localStorage.getItem('ctv1-mode') || 'simple'; } catch (e) {}
+  if (location.hash === '#advanced' || location.hash === '#simple') startMode = location.hash.slice(1);
+  setMode(startMode);
   setInterval(loop, 1000);
 })();
 </script>
