@@ -31,8 +31,9 @@ and an ESP32-S3 for WiFi, MQTT and a small setup web page.
    ┌──────────────────────────┐                ┌────────────────────────────────┐
    │ RAK3172                  │                │ ESP32-S3-WROOM-1 (N8R2)        │
    │ VDD ◄── 3V3              │                │ 3V3 ◄── 3V3      EN ── 10k↑ + 1µF
-   │ PA2 UART2_TX ────────────┼───────────────►│ GPIO 18 (UART1 RX)             │
-   │ PA3 UART2_RX ◄───────────┼────────────────│ GPIO 17 (UART1 TX)             │
+   │ PB6 UART1_TX ────────────┼───────────────►│ GPIO 18 (UART1 RX)             │
+   │ PB7 UART1_RX ◄───────────┼────────────────│ GPIO 17 (UART1 TX)             │
+   │ PA2/PA3 UART2 → 4-pin header (programming + AT console)                   │
    │ NRST ◄───────────────────┼────────────────│ GPIO 16 (reset the radio)      │
    │ PA0  (packet-ready IRQ) ─┼───────────────►│ GPIO 15                        │
    │ RF ── u.FL pigtail       │                │                                │
@@ -55,9 +56,10 @@ and an ESP32-S3 for WiFi, MQTT and a small setup web page.
 
 ## Software on the home beacon
 
-- **RAK3172 firmware:** permanent RX on the farm channel. On each valid packet: check MIC,
+- **RAK3172 firmware** (`firmware/gateway_radio`): permanent RX on the farm channel. On each valid packet: check MIC,
   send ACK (+ any queued command for that tag) inside the tag's 1 s RX window, then pass
-  `{raw packet, RSSI, SNR}` to the ESP32 over UART.
+  `{raw packet, RSSI, SNR}` to the ESP32 over UART1 as one text line (`UP,-97,7,<hex>`).
+  UART2 stays free for flashing, so the ESP32 never has to be unplugged to update the radio.
 - **ESP32-S3 firmware (Arduino or ESP-IDF):**
   - WiFi manager (captive portal first time), stores MQTT server and keys.
   - Publishes `ctv1/gw/<gw_id>/up` JSON for each packet, `ctv1/gw/<gw_id>/status` every 60 s.

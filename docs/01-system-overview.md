@@ -142,16 +142,16 @@ gateway is one cheap module instead of an 8-channel concentrator.
 
 | Byte | Field | Notes |
 |---|---|---|
-| 0 | `type` | `0x01` position, `0x02` no-fix heartbeat, `0x03` buzz ack |
+| 0 | `type` | `0x01` position, `0x02` no fix this time (lat/lon = last known position) |
 | 1–2 | `tag_id` | uint16 |
 | 3 | `seq` | wraps at 255, used to drop duplicates |
 | 4–7 | `lat` | int32, degrees × 1e7 |
 | 8–11 | `lon` | int32, degrees × 1e7 |
 | 12 | `batt` | (mV − 2000) / 10 → 2.00–4.55 V |
-| 13 | `flags` | bit0 fix ok, bit1 moving, bit2 low batt, bit3 solar charging, bit4 outside fence (local check) |
+| 13 | `flags` | bit0 fix ok, bit1 moving, bit2 low batt, bit3 solar charging, bit4 outside fence (local check), bit5 last command carried out |
 | 14 | `sats_hdop` | high nibble sats (0–15), low nibble HDOP (0–15 ×0.5) |
 | 15 | `activity` | accelerometer movement count since last report (0–255) |
-| 16–19 | `mic` | first 4 bytes of AES-128-CMAC over bytes 0–15 with a per-tag key |
+| 16–19 | `mic` | first 4 bytes of AES-128-CMAC over bytes 0–15 with the tag key. Tag key = AES(farm key, "CT1" + tag_id), so the home beacon only stores the farm key. |
 
 ### Downlink (gateway → tag, sent in a 1 s RX window right after the uplink)
 
@@ -160,9 +160,9 @@ gateway is one cheap module instead of an 8-channel concentrator.
 | 0 | `type` `0x81` ACK, `0x82` ACK + command |
 | 1–2 | `tag_id` |
 | 3 | `seq` being acknowledged |
-| 4 | `cmd`: `0x00` none, `0x01` buzz N seconds, `0x02` set interval, `0x03` fast-track mode |
+| 4 | `cmd`: `0x00` none, `0x01` buzz N seconds, `0x02` set interval (minutes), `0x03` fast-track for N hours (0 = stop) |
 | 5 | `arg` |
-| 6–9 | `mic` |
+| 6–9 | `mic` (CMAC over bytes 0–5, tag key) |
 
 ## Power budget (collar tag)
 
