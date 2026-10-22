@@ -1,0 +1,25 @@
+ref,value,part,note
+J1,BAT-2,JST-PH 2-pin,5 V adapter in (BAT-2 type connector reused as DC in).
+M2,IP5306 UPS,IP5306 charge + 5 V boost module with 18650 (about 12 h backup),
+R1,100k,Resistor 0603,Mains present? 5 V reads ~2.5 V.
+R2,100k,Resistor 0603,
+M1,ESP32-S3-DevKitC-1,ESP32-S3-DevKitC-1 N8R2 on 2x22 sockets (its 3V3 regulator also feeds U1),
+U1,RAK3172,"RAK3172 (STM32WLE5CC + LoRa), IPEX antenna variant, band per region (IN865 default)",Antenna on the module's IPEX connector.
+C1,10u,10 µF X5R 0805,
+C2,100n,100 nF X7R 0603,
+R9,10k,Resistor 0603,
+TP1,SWD pads,4 test pads (or Tag-Connect TC2030): recovery / debugger,
+R7,4.7k,Resistor 0603,
+R8,4.7k,Resistor 0603,
+J5,DSP-4,1x4 2.54 mm header,Optional status OLED (not driven yet).
+J6,DBG-6,1x6 2.54 mm header,RAK3172 programming / ATC+ settings.
+R3,330,Resistor 0603,
+D1,LED green,LED 3 mm,
+R4,330,Resistor 0603,
+D2,LED red,LED 3 mm,
+R5,220,Resistor 0603,
+R6,100k,Resistor 0603,
+Q1,AO3400,"AO3400A logic-level N-MOSFET, 5 A",
+D3,SS14,SS14 Schottky flyback,
+J3,OUT-2,JST-PH 2-pin,12 V siren or relay coil.
+J4,12 V in,2-pin screw terminal,Only needed for a 12 V siren.

@@ -15,6 +15,26 @@ static void mic(const uint8_t key[16], const uint8_t *msg, size_t len, uint8_t o
   memcpy(out, full, CTV1_MIC_LEN);
 }
 
+uint32_t ctv1_lora_airtime_ms(uint8_t payload_len, uint8_t sf) {
+  // Semtech AN1200.13 formula, in microseconds; one symbol at 125 kHz = 2^sf * 8 us
+  uint32_t tsym_us = (1UL << sf) * 8;
+  int de = sf >= 11 ? 1 : 0;  // low data-rate optimisation (symbol > 16 ms)
+  int32_t num = 8 * payload_len - 4 * sf + 28 + 16;
+  int32_t den = 4 * (sf - 2 * de);
+  int32_t blocks = num > 0 ? (num + den - 1) / den : 0;
+  uint32_t symbols_x4 = (8 + 4) * 4 + 1 + 4 * (8 + blocks * 5);  // preamble + 4.25, times 4
+  return (symbols_x4 * tsym_us / 4 + 999) / 1000;
+}
+
+uint32_t ctv1_handheld_reply_delay_ms(uint8_t sf) {
+  return CTV1_ACK_DELAY_MS + ctv1_lora_airtime_ms(CTV1_DOWNLINK_LEN, sf) + 100;  // 100 ms guard
+}
+
+uint32_t ctv1_tag_rx_window_ms(uint8_t sf) {
+  uint32_t w = ctv1_handheld_reply_delay_ms(sf) + ctv1_lora_airtime_ms(CTV1_DOWNLINK_LEN, sf) + 200;
+  return w < 1500 ? 1500 : w;
+}
+
 void ctv1_derive_tag_key(const uint8_t farm_key[16], uint16_t tag_id, uint8_t tag_key[16]) {
   uint8_t block[16] = {'C', 'T', '1'};
   put16(&block[3], tag_id);

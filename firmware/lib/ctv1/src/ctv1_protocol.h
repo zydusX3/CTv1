@@ -56,6 +56,17 @@ struct Ctv1Downlink {
   uint8_t arg;
 };
 
+// Time on air in ms for a LoRa packet at 125 kHz, coding rate 4/5, preamble 8, explicit header, CRC on
+// (the settings every CTv1 device uses).
+uint32_t ctv1_lora_airtime_ms(uint8_t payload_len, uint8_t sf);
+
+// Reply timing after a tag's report, so the home beacon and a handheld never talk over each other:
+//   beacon ACK at +CTV1_ACK_DELAY_MS, handheld command after the beacon's ACK has finished,
+//   tag listens until the handheld's reply has finished too.
+#define CTV1_ACK_DELAY_MS 50
+uint32_t ctv1_handheld_reply_delay_ms(uint8_t sf);
+uint32_t ctv1_tag_rx_window_ms(uint8_t sf);
+
 // Per-tag key = AES(farm_key, "CT1" | tag_id_le | zeros). The gateway only needs the farm key.
 void ctv1_derive_tag_key(const uint8_t farm_key[16], uint16_t tag_id, uint8_t tag_key[16]);
 

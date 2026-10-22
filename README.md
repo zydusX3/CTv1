@@ -12,4 +12,5 @@ beacon (LoRa → WiFi gateway) and a handheld beacon for finding animals in the 
 | [05 · Expansion](docs/05-expansion.md) | Add-ons for each device and the app |
 | [06 · App requirements](docs/06-app-requirements.md) | Map, geofence and alert requirements, stack, data model |
 | [UI mockup](app/mockup/index.html) | Open in a browser: Simple view (map only, big zoom buttons) and Advanced view (herd, alerts, fence editing) |
+| [Hardware reference](hardware/README.md) | Plug-in ports, bench wiring, reference schematics and PCB placements for all three boards |
 | [Firmware](firmware/README.md) | Collar tag, home beacon (RAK3172 radio + ESP32-S3 WiFi/MQTT) and handheld, shared library with unit tests, bench monitor |

@@ -3,7 +3,30 @@
 A clickable mockup of the UI is in [`app/mockup/index.html`](../app/mockup/index.html)
 (open it in any browser; it runs a simulated herd, no server needed).
 
-## Architecture
+## v1: no server (the home beacon is the hub)
+
+Decision D-3: v1 runs **without a server**. The home beacon's ESP32-S3 does the server's jobs for one farm:
+
+```mermaid
+flowchart LR
+    T["Collars"] -- LoRa --> R["Beacon radio<br/>(RAK3172)"]
+    H["Handheld"] -- LoRa --- T
+    R -- UART --> E["Beacon ESP32-S3<br/>• stores every report (flash)<br/>• fence + alert rules<br/>• serves the app (web page)<br/>• live updates (WebSocket)"]
+    E -- "home WiFi" --> P["Phone / tablet on home WiFi<br/>http://ctv1-beacon.local"]
+    E -- "internet (if any)" --> N["Push service<br/>ntfy now, FCM later"] --> P2["Phone anywhere:<br/>push alert"]
+```
+
+| Job | Without a server (v1) | When the server add-on is worth it |
+|---|---|---|
+| Receive collars, fence check, siren | Beacon (already built) | Never needed |
+| Live map + history | Beacon serves the app on home WiFi. History in its flash: 5 animals × 144 reports/day × ~15 bytes ≈ 11 KB/day, so 4–5 months in the standard 1.5 MB data partition (about a year with a bigger one) | Years of history, analytics |
+| Alerts while you're away | Beacon sends a push through ntfy (now) or Firebase (with our own app); needs internet at the house | Same, plus SMS/Telegram and repeat-until-acknowledged across users |
+| **Open the map from outside the farm** | Not possible: the phone can't reach the beacon over the internet | **Main reason for the server** (or a cloud MQTT relay) |
+| Several beacons / farms / users | No | Yes |
+
+The MQTT code in the beacon stays in place. It is simply switched off until a server address is entered.
+
+## Architecture with the server add-on (later)
 
 ```mermaid
 flowchart LR
