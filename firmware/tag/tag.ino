@@ -189,13 +189,13 @@ static bool receive_downlink(uint32_t window_end, Ctv1Downlink &dn) {
 }
 
 // Sends one uplink and waits for the ACK. The home beacon answers after ~50 ms; a handheld that
-// wants this collar to buzz answers after ~400 ms. So after a plain ACK, keep listening for the
+// wants this collar to buzz answers once the beacon's ACK is over (ctv1_handheld_reply_delay_ms). So after a plain ACK, keep listening for the
 // rest of the window in case a command follows (costs ~1 s at 5 mA per report).
 static bool send_and_wait_ack(const uint8_t *pkt, uint8_t len, Ctv1Downlink &dn) {
   tx_done = false;
   if (!api.lora.psend(len, (uint8_t *)pkt)) return false;
   if (!wait_flag(tx_done, nullptr, 5000)) return false;
-  uint32_t window_end = millis() + RX_WINDOW_MS;
+  uint32_t window_end = millis() + ctv1_tag_rx_window_ms(ctv1_cfg.sf);  // beacon ACK, then maybe a handheld command
   if (!receive_downlink(window_end, dn)) return false;
   Ctv1Downlink more;
   if (dn.type == CTV1_DOWN_ACK && receive_downlink(window_end, more) && more.type == CTV1_DOWN_ACK_CMD) dn = more;

@@ -107,6 +107,18 @@ static void test_protocol() {
   CHECK_EQ(dback.cmd, CTV1_CMD_BUZZ);
   CHECK_EQ(dback.arg, 30);
   CHECK(!ctv1_decode_uplink(d, sizeof(d), back));  // a downlink is never taken for an uplink
+
+  // airtime against the Semtech LoRa calculator (125 kHz, CR 4/5, preamble 8, CRC on)
+  CHECK_EQ(ctv1_lora_airtime_ms(20, 9), 186);   // 185.3 ms rounded up
+  CHECK_EQ(ctv1_lora_airtime_ms(20, 10), 371);
+  CHECK_EQ(ctv1_lora_airtime_ms(10, 10), 289);
+  CHECK_EQ(ctv1_lora_airtime_ms(20, 12), 1319);
+  for (uint8_t sf = 7; sf <= 12; sf++) {
+    uint32_t beacon_done = CTV1_ACK_DELAY_MS + ctv1_lora_airtime_ms(CTV1_DOWNLINK_LEN, sf);
+    uint32_t hh = ctv1_handheld_reply_delay_ms(sf);
+    CHECK(hh > beacon_done);                                                         // no overlap
+    CHECK(ctv1_tag_rx_window_ms(sf) > hh + ctv1_lora_airtime_ms(CTV1_DOWNLINK_LEN, sf));  // tag still listening
+  }
 }
 
 static int feed(Ctv1Nmea &n, const char *s) {

@@ -9,15 +9,14 @@
 // Make one with:  python3 -c "import os; print(', '.join('0x%02x' % b for b in os.urandom(16)))"
 #define DEFAULT_FARM_KEY {0x43, 0x54, 0x76, 0x31, 0x2d, 0x63, 0x68, 0x61, 0x6e, 0x67, 0x65, 0x2d, 0x6d, 0x65, 0x21, 0x21}
 #define DEFAULT_FREQ_HZ 865062500  // IN865 example. EU868: 868100000, US915: 903900000, AU915: 916800000
-#define DEFAULT_SF 9
-#define DEFAULT_TX_DBM 14          // raise to 20-22 only where your region allows it
+#define DEFAULT_SF 10              // SF10: ~5 km with the roof antenna (SF9 ~2-4 km, SF11 for hills)
+#define DEFAULT_TX_DBM 20          // India 865-867 MHz allows up to 1 W (30 dBm); use 14 in EU868
 #define DEFAULT_INTERVAL_S 600     // normal: every 10 min
 
 // ---- Radio (fixed) ----
 #define LORA_BW_KHZ 125
 #define LORA_CR 0               // 0 = 4/5
 #define LORA_PREAMBLE 8
-#define RX_WINDOW_MS 1500       // listens this long after sending: home beacon ACK, then maybe a handheld command
 
 // ---- Reporting ----
 #define REPORT_JITTER_S 30        // random 0..30 s added so tags never stay in step

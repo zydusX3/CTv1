@@ -132,12 +132,13 @@ gateway is one cheap module instead of an 8-channel concentrator.
 | Setting | Value | Why |
 |---|---|---|
 | Band | Choose for your country: **IN865** (865–867 MHz, India), **EU868**, **US915**, **AU915** | Legal ISM band. Buy the module variant for that band. |
-| Spreading factor | SF9 (SF10 for hilly ground) | ~2–5 km range on open ground with roof antenna |
+| Spreading factor | **SF10** default (set per device with `ATC+CTSF`) | ~5 km on open ground with the roof antenna. SF9 ~2–4 km, SF11 for hills |
 | Bandwidth | 125 kHz | Standard |
 | Coding rate | 4/5 | Standard |
-| TX power | +14 dBm tag (raise to +20/+22 if your region allows) | Range vs battery |
-| Payload | 20 bytes | Airtime ≈ 185 ms at SF9 |
-| Collision handling | Random 0–30 s jitter on each wake, ACK + 1 retry | 50 tags × 6/h is well under 1 % channel use |
+| TX power | **+20 dBm** default for India (865–867 MHz allows up to 1 W); 14 dBm for EU868 | Costs almost nothing next to the GPS |
+| Payload | 20 bytes | Airtime 371 ms at SF10 (186 ms at SF9). ACK 10 bytes: 289 ms |
+| Collision handling | Random 0–30 s jitter on each wake, ACK + 1 retry | 5 tags × 6/h ≈ 0.3 % channel use; even 50 tags stay under 4 % |
+| Reply timing | Beacon ACK at +50 ms; handheld command after the ACK ends (+439 ms at SF10); tag listens 1.5 s | Worked out per SF by `ctv1_handheld_reply_delay_ms()` / `ctv1_tag_rx_window_ms()` so they never overlap |
 
 ### Uplink packet (20 bytes, little-endian)
 
@@ -170,7 +171,7 @@ gateway is one cheap module instead of an 8-channel concentrator.
 | State | Current | Time per report | Charge per report |
 |---|---|---|---|
 | GPS hot start + fix | ~25 mA (MAX-M10S + MCU) | ~5 s typical, 30 s worst | 0.035 – 0.21 mAh |
-| LoRa TX +14 dBm | ~45 mA | 0.19 s | 0.0024 mAh |
+| LoRa TX +20 dBm, SF10 | ~90 mA | 0.37 s | 0.0093 mAh |
 | LoRa RX window | ~5 mA | 1 s | 0.0014 mAh |
 | Sleep (MCU Stop2 + LDO + accel + GPS backup) | ~45 µA | rest of interval | 1.1 mAh / day |
 

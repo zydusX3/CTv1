@@ -1,0 +1,29 @@
+ref,value,part,note
+J1,BAT-2,JST-PH 2-pin,"From the CN3791 solar charger, which holds the 18650."
+C1,1u,1 µF X7R 0603,
+U2,MCP1700-3302,"MCP1700T-3302E/TT, 3.3 V LDO, Iq 1.6 µA",
+C2,220u,220 µF 6.3 V low-ESR polymer/tantalum,Low-ESR bulk: covers the 20 dBm TX burst.
+C5,10u,10 µF X5R 0805,
+R1,1M,Resistor 0603,"Battery divider, 2 µA."
+R2,1M,Resistor 0603,
+C3,100n,100 nF X7R 0603,
+U3,TPS22917,TPS22917DBVR load switch (or SI2301 P-MOSFET),
+C6,10u,10 µF X5R 0805,
+R6,100,Resistor 0603,GPS backup supply: keeps the almanac for 2-5 s hot starts.
+C4,10u,10 µF X5R 0805,
+U1,RAK3172,"RAK3172 (STM32WLE5CC + LoRa), IPEX antenna variant, band per region (IN865 default)",Antenna on the module's IPEX connector.
+C7,100n,100 nF X7R 0603,Next to the RAK3172 VDD pad.
+R3,10k,Resistor 0603,
+R4,4.7k,Resistor 0603,
+TP1,SWD pads,4 test pads (or Tag-Connect TC2030): recovery / debugger,
+R5,4.7k,Resistor 0603,
+J2,GPS-6,1x6 2.54 mm header,
+J3,SNS-5,1x5 2.54 mm header,"LIS3DH breakout, address 0x18."
+J4,DBG-6,1x6 2.54 mm header,
+R7,1k,Resistor 0603,
+D1,LED red,LED 0603,
+R8,100,Resistor 0603,
+R9,100k,Resistor 0603,
+Q1,2N7002,2N7002 N-MOSFET SOT-23,
+D2,1N4148,1N4148W flyback,
+J5,OUT-2,JST-PH 2-pin,"Magnetic buzzer 3 V, 2.7 kHz."

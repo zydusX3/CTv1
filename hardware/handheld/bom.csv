@@ -1,0 +1,36 @@
+ref,value,part,note
+J1,BAT-2,JST-PH 2-pin,"From the TP4056 USB-C charger module, which holds the LiPo."
+SW1,Power,SPDT slide switch,
+C1,1u,1 µF X7R 0603,
+U2,MCP1700-3302,"MCP1700T-3302E/TT, 3.3 V LDO",
+C2,22u,22 µF X5R 0805,
+R1,1M,Resistor 0603,Divider after the switch: no drain when off.
+R2,1M,Resistor 0603,
+C3,100n,100 nF X7R 0603,
+U3,TPS22917,TPS22917DBVR load switch,
+C6,10u,10 µF X5R 0805,
+R6,100,Resistor 0603,
+C4,10u,10 µF X5R 0805,
+U1,RAK3172,"RAK3172 (STM32WLE5CC + LoRa), IPEX antenna variant, band per region (IN865 default)",Antenna on the module's IPEX connector.
+C7,100n,100 nF X7R 0603,
+R3,10k,Resistor 0603,
+R4,4.7k,Resistor 0603,
+TP1,SWD pads,4 test pads (or Tag-Connect TC2030): recovery / debugger,
+R5,4.7k,Resistor 0603,
+SW2,<,"6 mm tactile, IP67 if possible",
+SW3,OK,6 mm tactile,
+SW4,>,6 mm tactile,
+J2,GPS-6,1x6 2.54 mm header,
+J3,SNS-5,1x5 2.54 mm header,LSM303AGR breakout (0x19 / 0x1E).
+J4,DSP-4,1x4 2.54 mm header,"1.3"" SH1106 OLED (0x3C)."
+J5,DBG-6,1x6 2.54 mm header,
+R8,100,Resistor 0603,
+R9,100k,Resistor 0603,
+Q1,2N7002,2N7002 N-MOSFET,
+D2,1N4148,1N4148W flyback,
+J6,OUT-2,JST-PH 2-pin,10 mm coin vibration motor.
+R10,100,Resistor 0603,
+R11,100k,Resistor 0603,
+Q2,2N7002,2N7002 N-MOSFET,
+D3,1N4148,1N4148W flyback,
+J7,OUT-2,JST-PH 2-pin,Magnetic buzzer.

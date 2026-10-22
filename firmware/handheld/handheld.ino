@@ -2,7 +2,7 @@
 // Board: RAK3172 (RUI3 core 4.x) + MAX-M10S GPS + LSM303AGR compass + 1.3" OLED + 3 buttons.
 //
 // It listens to every tag report on the farm channel. When you ask a collar to buzz, the command
-// goes out in that collar's receive window right after its next report (HANDHELD_ACK_DELAY_MS),
+// goes out in that collar's receive window right after its next report (ctv1_handheld_reply_delay_ms),
 // after the home beacon's own ACK, so both can answer without colliding.
 //
 // Buttons:  < / >  choose collar     OK  buzz (press again to cancel)     hold OK  2-minute reports for 1 h
@@ -130,7 +130,7 @@ static void handle_packet(const RxPacket &p) {
     pending.seq = up.seq;
     pending.cmd = t->cmd == CTV1_HH_BUZZ_WAITING ? CTV1_CMD_BUZZ : CTV1_CMD_FAST;
     pending.arg = t->cmd == CTV1_HH_BUZZ_WAITING ? 30 : FAST_HOURS;
-    pending.due_ms = p.ms + HANDHELD_ACK_DELAY_MS;
+    pending.due_ms = p.ms + ctv1_handheld_reply_delay_ms(ctv1_cfg.sf);  // after the home beacon's ACK
   }
 }
 
