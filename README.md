@@ -4,6 +4,7 @@ beacon (LoRa → WiFi gateway) and a handheld beacon for finding animals in the 
 
 | Doc | Contents |
 |---|---|
+| [**Task list**](TASKS.md) | What's done, next and dropped. Updated as we go |
 | [01 · System overview](docs/01-system-overview.md) | Block diagrams, radio settings, packet format, power budget |
 | [02 · Collar tag](docs/02-hardware-collar-tag.md) | Schematic, BOM, firmware outline |
 | [03 · Home beacon](docs/03-hardware-home-beacon.md) | Schematic, BOM, gateway software |
