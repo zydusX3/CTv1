@@ -1,4 +1,4 @@
-# CTv1
+# CTv2
 Cattle tracker v1: STM32WL (RAK3172) + LoRa + GPS + battery/solar collar tags, a home
 beacon (LoRa → WiFi gateway) and a handheld beacon for finding animals in the field.
 
